@@ -1,0 +1,30 @@
+{
+  "name": "tweetlyapp",
+  "version": "0.0.1",
+  "description": "Tweetly - We take care of your content",
+  "main": "app.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/karanjthakkar/tweetlyapp.git"
+  },
+  "keywords": [
+    "twitter",
+    "growth",
+    "automation",
+    "social",
+    "media"
+  ],
+  "dependencies": {
+    "express": "3.x.x",
+    "ejs": ">= 0.0.0",
+    "passport": ">= 0.0.0",
+    "passport-twitter": ">= 0.0.0",
+    "connect-mongo": "^0.8.2",
+    "express-session": "^1.11.3"
+  },
+  "author": "Karan Thakkar",
+  "license": "GPL"
+}
