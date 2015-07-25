@@ -1,12 +1,28 @@
-var express = require('express'),
+var fs = require('fs'),
+  path = require('path'),
+  express = require('express'),
   passport = require('passport'),
   TwitterStrategy = require('passport-twitter').Strategy,
   session = require('express-session'),
+  argv = require('minimist')(process.argv.slice(2)),
+  config = require('./config'),
+  mongoose = require('mongoose'),
   MongoStore = require('connect-mongo')(session);
 
-var TWITTER_CONSUMER_KEY = process.env.tweetly_consumer_key;
-var TWITTER_CONSUMER_SECRET = process.env.tweetly_consumer_secret;
+//Setup config based on environment
+config = (argv['environment'] === 'prod' ? config.prod : config.test);
 
+//initiate DB connection using mongoose
+mongoose.connect(config.dbUrl);
+
+// Bootstrap models
+var modelsPath = path.join(__dirname, 'models');
+fs.readdirSync(modelsPath).forEach(function (file) {
+  console.log(file);
+  require(modelsPath + '/' + file);
+});
+
+var UserController = require('./controllers/user');
 
 // Passport session setup.
 // To support persistent login sessions, Passport needs to be able to
@@ -23,29 +39,34 @@ passport.deserializeUser(function(obj, done) {
   done(null, obj);
 });
 
-
 // Use the TwitterStrategy within Passport.
 // Strategies in passport require a `verify` function, which accept
 // credentials (in this case, a token, tokenSecret, and Twitter profile), and
 // invoke a callback with a user object.
 passport.use(new TwitterStrategy({
-    consumerKey: TWITTER_CONSUMER_KEY,
-    consumerSecret: TWITTER_CONSUMER_SECRET,
-    callbackURL: "http://127.0.0.1:3000/auth/twitter/callback"
+    consumerKey: config.TWITTER_CONSUMER_KEY,
+    consumerSecret: config.TWITTER_CONSUMER_SECRET,
+    callbackURL: config.callbackURL
   },
   function(token, tokenSecret, profile, done) {
-    // asynchronous verification, for effect...
-    process.nextTick(function() {
-
-      // To keep the example simple, the user's Twitter profile is returned to
-      // represent the logged-in user.  In a typical application, you would want
-      // to associate the Twitter account with a user record in your database,
-      // and return that user instead.
-      return done(null, profile);
-    });
+    var user = {
+      id: profile._json.id,
+      description: profile._json.description,
+      username: profile._json.screen_name,
+      followers: profile._json.followers_count,
+      following: profile._json.friends_count,
+      favorites: profile._json.favourites_count,
+      statuses: profile._json.statuses_count,
+      lists: profile._json.listed_count,
+      profile_image_url: profile._json.profile_image_url_https || profile._json.profile_image_url,
+      profile_banner_url: profile._json.profile_banner_url,
+      twitter_token: token,
+      twitter_token_secret: tokenSecret,
+      access_level: profile._accessLevel
+    };
+    UserController.saveOrUpdateUserData(user, done);
   }
 ));
-
 
 
 var app = express();
@@ -62,8 +83,7 @@ app.configure(function() {
     secret: 'keyboard cat',
     maxAge: new Date(Date.now() + 3600000),
     store: new MongoStore({
-      db: 'Test',
-      host: 'localhost'
+      mongooseConnection: mongoose.connection
     })
   }));
   // Initialize Passport!  Also use passport.session() middleware, to support
@@ -76,19 +96,17 @@ app.configure(function() {
 
 
 app.get('/', function(req, res) {
-  res.render('index', {
-    user: req.user
-  });
+  if (req.user) {
+    res.redirect('/account');
+  } else {
+    res.render('login', {
+      user: req.user
+    });
+  }
 });
 
 app.get('/account', ensureAuthenticated, function(req, res) {
   res.render('account', {
-    user: req.user
-  });
-});
-
-app.get('/login', function(req, res) {
-  res.render('login', {
     user: req.user
   });
 });
@@ -98,12 +116,7 @@ app.get('/login', function(req, res) {
 // request.  The first step in Twitter authentication will involve redirecting
 // the user to twitter.com.  After authorization, the Twitter will redirect
 // the user back to this application at /auth/twitter/callback
-app.get('/auth/twitter',
-  passport.authenticate('twitter'),
-  function(req, res) {
-    // The request will be redirected to Twitter for authentication, so this
-    // function will not be called.
-  });
+app.get('/auth/twitter', passport.authenticate('twitter'));
 
 // GET /auth/twitter/callback
 // Use passport.authenticate() as route middleware to authenticate the
@@ -112,10 +125,10 @@ app.get('/auth/twitter',
 // which, in this example, will redirect the user to the home page.
 app.get('/auth/twitter/callback',
   passport.authenticate('twitter', {
-    failureRedirect: '/login'
+    failureRedirect: '/'
   }),
   function(req, res) {
-    res.redirect('/');
+    res.redirect('/account');
   });
 
 app.get('/logout', function(req, res) {
@@ -135,5 +148,5 @@ function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.redirect('/login')
+  res.redirect('/')
 }
