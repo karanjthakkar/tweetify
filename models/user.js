@@ -42,20 +42,26 @@ var UserSchema = new Schema({
   access_level: String,
   last_access_date: Number,
   created_at: Number,
-  whitelisted_user_list: [{
+  fav_users: [{
     username: String,
     created_at: {
       type: Date,
       default: Date.now
     }
   }],
-  whitelisted_word_list: [{
+  fav_keywords: [{
     keyword: String,
     created_at: {
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  last_cron_check: {
+    type: Number,
+    defaut: -1
+  },
+  top_tweet_ids: [ Number ],
+  all_tweet_ids: [ Number ]
 });
 
 mongoose.model('User', UserSchema);
