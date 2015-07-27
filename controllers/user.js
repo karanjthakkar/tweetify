@@ -29,7 +29,10 @@ exports.saveOrUpdateUserData = function(userData, done) {
         user.last_access_date = Date.now();
       }
       user.save(function(err, user) {
-        done(err, user);
+        done(err, {
+          id: user.id,
+          username: user.username
+        });
       });
     }
   });

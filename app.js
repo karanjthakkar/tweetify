@@ -19,7 +19,6 @@ mongoose.connect(config.dbUrl);
 // Bootstrap models
 var modelsPath = path.join(__dirname, 'models');
 fs.readdirSync(modelsPath).forEach(function (file) {
-  console.log(file);
   require(modelsPath + '/' + file);
 });
 

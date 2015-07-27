@@ -44,6 +44,7 @@ var UserSchema = new Schema({
   created_at: Number,
   fav_users: [{
     username: String,
+    last_read_tweet_id: Number,
     created_at: {
       type: Date,
       default: Date.now
@@ -61,7 +62,10 @@ var UserSchema = new Schema({
     defaut: -1
   },
   top_tweet_ids: [ Number ],
-  all_tweet_ids: [ Number ]
+  total_tweets_analysed: {
+    type: Number,
+    default: 0
+  }
 });
 
 mongoose.model('User', UserSchema);
