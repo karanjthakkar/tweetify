@@ -18,6 +18,7 @@
     "media"
   ],
   "dependencies": {
+    "async": "^1.4.0",
     "connect-mongo": "^0.8.2",
     "ejs": ">= 0.0.0",
     "express": "3.x.x",

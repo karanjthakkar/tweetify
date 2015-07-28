@@ -1,8 +1,9 @@
 var fs = require('fs'),
   path = require('path'),
   _ = require('lodash'),
+  async = require('async'),
   Twit = require('twit'),
-  Q = require('q');
+  Q = require('q'),
   config = require('../config'),
   argv = require('minimist')(process.argv.slice(2)),
   mongoose = require('mongoose');
@@ -15,24 +16,20 @@ mongoose.connect(config.dbUrl);
 
 // Bootstrap models
 var modelsPath = path.join(__dirname, '../models');
-fs.readdirSync(modelsPath).forEach(function (file) {
+fs.readdirSync(modelsPath).forEach(function(file) {
   require(modelsPath + '/' + file);
 });
 
 var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
-  console.log('hello ', err, users);
   if (err) {
     console.log(Date.now(), ': Job Stopped ', err);
   } else {
-    console.log(1)
     _.each(users, function(user) {
-      console.log(2)
       if (user.application_token_expired) {
         console.log(Date.now(), ': Application token invalid or expired ', user.id);
       } else {
-        console.log(3)
         //Get fav_users for each user
         var favUsers = user.fav_users,
           T = new Twit({
@@ -41,50 +38,18 @@ User.find({}, function(err, users) {
             access_token: user.twitter_app_access_token,
             access_token_secret: user.twitter_app_access_token_secret
           }),
-          promiseList = [];
+          fetchTweetsForEachFavUserFunctions = [];
 
         _.each(favUsers, function(favUser) {
-          var deferred = Q.defer(),
-            options = {
-              screen_name: favUser.username
-            };
-
-          //Fetch tweets using since_id or last 100 tweets
-          if (favUser.since_id === undefined) {
-            options['count'] = 100;
-          } else {
-            options['since_id'] = favUser.since_id;
-          }
-
-          T.get('statuses/user_timeline', options, function(err, tweets) {
-
-            if (err) {
-              console.log(4, err);
-              deferred.resolve([]);
-            } else {
-              console.log(7, tweets.length);
-              //tweets.length > 0 ? saveSinceIdForEachFavUser(user, favUser, tweets[0]['id']);
-              deferred.resolve(tweets);
-            }
-
-          });
-
-          promiseList.push(deferred);
+          fetchTweetsForEachFavUserFunctions.push(fetchTweetsForEachFavUser(T, user, favUser));
         });
 
-        console.log('before', promiseList.length);
-        Q.all(promiseList).then(function(results) {
+        async.parallel(fetchTweetsForEachFavUserFunctions, function(err, tweetsForAllFavUsersOfOneUser) {
           var tweets = [];
-          console.log('results', results.length, results[0]);
-
-          //save analysed tweets count in db
-
-          //filter using keywords
-
-          //findTopTweets(tweets)
-
-          //save these tweets to user object
-
+          tweetsForAllFavUsersOfOneUser.forEach(function(item, index) {
+            tweets = tweets.concat(item.data);
+          });
+          findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
         });
 
       }
@@ -92,6 +57,51 @@ User.find({}, function(err, users) {
     });
   }
 });
+
+function fetchTweetsForEachFavUser(T, user, favUser) {
+  return function(callback) {
+
+    var options = {
+      screen_name: favUser.username
+    };
+
+    //Fetch tweets using since_id or last 100 tweets
+    if (favUser.since_id === undefined) {
+      options['count'] = 100;
+    } else {
+      options['since_id'] = favUser.since_id;
+    }
+
+    T.get('statuses/user_timeline', options, function(err, tweets) {
+      var result = {}
+      if (err) {
+        console.log(Date.now(), ' : error fetching status for ', favUser.username);
+        result = {
+          user: user,
+          favUser: favUser,
+          data: []
+        };
+      } else {
+        if (tweets.length > 0) {
+          saveSinceIdForEachFavUser(user, favUser, tweets[0]['id_str']);
+        }
+        result = {
+          user: user,
+          favUser: favUser,
+          data: tweets
+        };
+      }
+      callback(null, result);
+    });
+
+  };
+}
+
+
+function findAndSaveTopTweetsForUser(user, tweets) {
+  //console.log('top', tweets.length, tweets[0].id_str, user.id);
+}
+
 
 function saveSinceIdForEachFavUser(user, favUser, sinceId) {
   var tempFav = _.map(user.fav_users, function(fav) {

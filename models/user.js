@@ -45,6 +45,7 @@ var UserSchema = new Schema({
   fav_users: [{
     username: String,
     last_read_tweet_id: Number,
+    since_id: String,
     created_at: {
       type: Date,
       default: Date.now
