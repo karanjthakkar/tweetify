@@ -1,6 +1,7 @@
 var fs = require('fs'),
   path = require('path'),
   _ = require('lodash'),
+  moment = require('moment'),
   async = require('async'),
   Twit = require('twit'),
   Q = require('q'),
@@ -30,6 +31,15 @@ User.find({}, function(err, users) {
       if (user.application_token_expired) {
         console.log(Date.now(), ': Application token invalid or expired ', user.id);
       } else {
+
+        var oldCron = user.last_cron_run_time,
+          newCron = Date.now(),
+          isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
+
+        if (!isHourComplete) {
+          return;
+        }
+
         //Get fav_users for each user
         var favUsers = user.fav_users,
           T = new Twit({
@@ -52,6 +62,8 @@ User.find({}, function(err, users) {
           //TODO: Find and save top tweets of users
           if (tweets.length > 0) {
             findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
+          } else {
+            console.log('Cron complete for user id: ' + user.id + '. No new tweets.');
           }
           //TODO: Schedule the top tweets for posting
         });
@@ -92,7 +104,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
         result = {
           user: user,
           favUser: favUser,
-          data: tweets
+          data: filterTweetsByKeyword(user, tweets)
         };
       }
       callback(null, result);
@@ -101,6 +113,15 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
   };
 }
 
+function filterTweetsByKeyword(user, tweets) {
+  var keywords = _.map(user.fav_keywords, function(item) {
+    return item.keyword;
+  });
+  return _.filter(tweets, function(tweet) {
+    var tweetText = tweet.retweeted_status ? tweet.retweeted_status.text : tweet.tweetText;
+    return new RegExp(keywords.join('|')).test(tweetText);
+  });
+}
 
 function findAndSaveTopTweetsForUser(user, tweets) {
   var sortedTweets = _.sortByOrder(tweets, function(tweet) {
@@ -118,15 +139,21 @@ function findAndSaveTopTweetsForUser(user, tweets) {
 
   //Get top 10 from sorted list and push them in the user object
   var top10 = _.slice(sortedTweets, 0, 10);
+  var currentTime = moment();
   top10 = top10.map(function(tweet) {
     var type = 'original';
     if (tweet.retweeted_status) {
       type = 'retweet'
     }
+
+    currentTime = moment(currentTime).add(6, 'minutes'); //Add 6 minutes to each tweet
+
     return {
-      score: tweet.score,
-      id: tweet.id_str,
-      type: type
+      tweet_score: tweet.score,
+      original_tweet_id: tweet.retweeted_status ? tweet.retweeted_status.id_str : tweet.id_str,
+      tweet_type: type,
+      scheduled_at: parseInt(currentTime.format('x')),
+      posted: false
     };
   });
   user.top_tweets = user.top_tweets.concat(top10);
@@ -137,10 +164,9 @@ function findAndSaveTopTweetsForUser(user, tweets) {
   user.save(function(err) {
     if (err) {
       console.log(Date.now(), ' : Error while saving top_tweets ', user.id, err);
-    } else {
-      console.log('success');
     }
   });
+  console.log('Cron complete for user id: ' + user.id + '. New tweets: ' + tweets.length);
 }
 
 

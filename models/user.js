@@ -59,9 +59,13 @@ var UserSchema = new Schema({
   }],
   last_cron_run_time: Number,
   top_tweets: [{
-    tweet_id: String,
+    original_tweet_id: String,
     tweet_score: Number,
-    tweet_type: String
+    tweet_type: String,
+    posted_tweet_id: String,
+    scheduled_at: Number,
+    posted_at: Number,
+    posted: Boolean
   }],
   total_tweets_analysed: {
     type: Number,
