@@ -17,7 +17,7 @@ exports.saveOrUpdateUserData = function(userData, done) {
       if (!user) { //Check if user is present in db. If not, create a new user
         var now = Date.now();
         userData = _.extend(userData, {
-          last_job_run_time: now,
+          last_cron_run_time: now,
           created_at: now,
           last_access_date: now
         });

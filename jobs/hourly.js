@@ -49,7 +49,11 @@ User.find({}, function(err, users) {
           tweetsForAllFavUsersOfOneUser.forEach(function(item, index) {
             tweets = tweets.concat(item.data);
           });
-          findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
+          //TODO: Find and save top tweets of users
+          if (tweets.length > 0) {
+            findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
+          }
+          //TODO: Schedule the top tweets for posting
         });
 
       }
@@ -65,11 +69,11 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
       screen_name: favUser.username
     };
 
-    //Fetch tweets using since_id or last 100 tweets
-    if (favUser.since_id === undefined) {
+    //Fetch tweets using last_read_tweet_id or last 100 tweets
+    if (favUser.last_read_tweet_id === undefined) {
       options['count'] = 100;
     } else {
-      options['since_id'] = favUser.since_id;
+      options['since_id'] = favUser.last_read_tweet_id;
     }
 
     T.get('statuses/user_timeline', options, function(err, tweets) {
@@ -83,7 +87,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
         };
       } else {
         if (tweets.length > 0) {
-          saveSinceIdForEachFavUser(user, favUser, tweets[0]['id_str']);
+          saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, tweets[0]['id_str']);
         }
         result = {
           user: user,
@@ -99,21 +103,59 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
 
 
 function findAndSaveTopTweetsForUser(user, tweets) {
-  //console.log('top', tweets.length, tweets[0].id_str, user.id);
+  var sortedTweets = _.sortByOrder(tweets, function(tweet) {
+    var score = 0;
+    //If status is RT'd, check original status count
+    if (tweet.retweeted_status) {
+      //Add score using RT and fav
+      score = tweet.retweeted_status.retweet_count + tweet.retweeted_status.favorite_count;
+    } else {
+      score = tweet.retweet_count + tweet.favorite_count;
+    }
+    tweet['score'] = score;
+    return score;
+  }, 'desc');
+
+  //Get top 10 from sorted list and push them in the user object
+  var top10 = _.slice(sortedTweets, 0, 10);
+  top10 = top10.map(function(tweet) {
+    var type = 'original';
+    if (tweet.retweeted_status) {
+      type = 'retweet'
+    }
+    return {
+      score: tweet.score,
+      id: tweet.id_str,
+      type: type
+    };
+  });
+  user.top_tweets = user.top_tweets.concat(top10);
+
+  //Increment Tweet analysed count in DB
+  user.total_tweets_analysed += tweets.length;
+
+  user.save(function(err) {
+    if (err) {
+      console.log(Date.now(), ' : Error while saving top_tweets ', user.id, err);
+    } else {
+      console.log('success');
+    }
+  });
 }
 
 
-function saveSinceIdForEachFavUser(user, favUser, sinceId) {
+function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId) {
   var tempFav = _.map(user.fav_users, function(fav) {
     if (favUser.username === fav.username) {
-      fav.since_id = sinceId;
+      fav.last_read_tweet_id = sinceId;
     }
     return fav;
   });
   user.fav_users = tempFav;
+  user.last_cron_run_time = Date.now();
   user.save(function(err) {
     if (err) {
-      console.log(Date.now(), ' : Error while saving since_id ', user.id);
+      console.log(Date.now(), ' : Error while saving last_read_tweet_id ', user.id, err);
     }
   });
 }

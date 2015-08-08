@@ -2,6 +2,7 @@ var mongoose = require('mongoose'),
   User = mongoose.model('User'),
   Twit = require('twit');
 
+//TODO: Validate data received from frontend. Check keys
 exports.getApplicationToken = function(req, res) {
   if(req.isAuthenticated()) {
     User.findOne({

@@ -44,8 +44,7 @@ var UserSchema = new Schema({
   created_at: Number,
   fav_users: [{
     username: String,
-    last_read_tweet_id: Number,
-    since_id: String,
+    last_read_tweet_id: String,
     created_at: {
       type: Date,
       default: Date.now
@@ -58,11 +57,12 @@ var UserSchema = new Schema({
       default: Date.now
     }
   }],
-  last_cron_check: {
-    type: Number,
-    defaut: -1
-  },
-  top_tweet_ids: [ Number ],
+  last_cron_run_time: Number,
+  top_tweets: [{
+    tweet_id: String,
+    tweet_score: Number,
+    tweet_type: String
+  }],
   total_tweets_analysed: {
     type: Number,
     default: 0

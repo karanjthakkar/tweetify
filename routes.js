@@ -49,6 +49,9 @@ module.exports = function(app, passport) {
   app.get('/application_tokens', TokenController.getApplicationToken);
   app.post('/application_tokens', TokenController.saveApplicationToken);
 
+  //Check if a username is valid
+  app.get('/check_username', OptionController.checkUsername);
+
   //Get and Save/Update Favorite Users
   app.get('/fav_users', OptionController.getFavoriteUsers);
   app.post('/fav_users', OptionController.saveFavoriteUsers);
