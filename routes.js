@@ -1,5 +1,6 @@
 var TokenController = require('./controllers/token'),
   OptionController = require('./controllers/option');
+  UserController = require('./controllers/user');
 
 /**
  * Application routes
@@ -59,6 +60,10 @@ module.exports = function(app, passport) {
   //Get and Save/Update Favorite Keywords
   app.get('/fav_keywords', OptionController.getKeywords);
   app.post('/fav_keywords', OptionController.saveKeywords);
+
+  //Fetch tweets for a user
+  app.get('/posted_tweets', UserController.getPostedTweets);
+  app.get('/scheduled_tweets', UserController.getScheduledTweets);
 
 };
 

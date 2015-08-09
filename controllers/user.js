@@ -2,7 +2,6 @@ var mongoose = require('mongoose'),
   _ = require('lodash'),
   User = mongoose.model('User');
 
-
 exports.saveOrUpdateUserData = function(userData, done) {
 
   var user;
@@ -38,3 +37,41 @@ exports.saveOrUpdateUserData = function(userData, done) {
   });
 
 };
+
+exports.getPostedTweets = function(req, res) {
+  getTweets(req, res, true);
+};
+
+exports.getScheduledTweets = function(req, res) {
+  getTweets(req, res, false);
+};
+
+function getTweets(req, res, posted) {
+  if (req.isAuthenticated()) {
+    var userId = req.user.id;
+
+    //Update or add new user to collection
+    User.findOne({
+      id: userId
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else {
+        var data = _.filter(user.top_tweets, function(item) {
+          return item.posted === posted;
+        });
+        return res.status(200).json(data)
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res);
+  }
+}
+
+function respondToUnauthenticatedRequests(res) {
+  res.status(403).json({
+    message: 'You are not logged in. Please login to continue'
+  });
+}

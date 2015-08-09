@@ -62,6 +62,7 @@ var UserSchema = new Schema({
     original_tweet_id: String,
     tweet_score: Number,
     tweet_type: String,
+    tweet_text: String,
     posted_tweet_id: String,
     scheduled_at: Number,
     posted_at: Number,
