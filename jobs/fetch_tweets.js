@@ -119,7 +119,7 @@ function filterTweetsByKeyword(user, tweets) {
   });
   return _.filter(tweets, function(tweet) {
     var tweetText = tweet.retweeted_status ? tweet.retweeted_status.text : tweet.tweetText;
-    return new RegExp(keywords.join('|')).test(tweetText);
+    return new RegExp(keywords.join('|'), 'gi').test(tweetText);
   });
 }
 
