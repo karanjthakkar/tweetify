@@ -245,12 +245,24 @@ function saveFavDataForKey(req, res, key) {
             message: 'There was an error finding your records'
           });
         } else {
-          var itemKey = (key === 'fav_users' ? 'username' : 'keyword');
-          user[key] = uniqueFavData.map(function(item) {
-            var returnObject = {};
-            returnObject[itemKey] = item;
-            return returnObject;
+          var itemKey = (key === 'fav_users' ? 'username' : 'keyword'),
+            oldList = user[key],
+            newList = uniqueFavData;
+
+          /*
+           *  This compares the new list from client with the old list
+           *  from db. It keeps items that overlap (preferring db copy)
+           *  else it adds the item from the new list to it
+           */
+          user[key] = _.map(newList, function(newUser) {
+            var isAlreadyPresentInOldList = _.find(oldList, function(prevUser) {
+              return new RegExp(newUser, 'gi').test(prevUser.username)
+            });
+            var newUserObj = {};
+            newUserObj[itemKey] = newUser;
+            return isAlreadyPresentInOldList || newUserObj;
           });
+
           user.last_access_date = Date.now();
           user.save(function(err, user) {
             if (err) {
