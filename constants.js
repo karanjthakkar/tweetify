@@ -1,5 +1,8 @@
 module.exports = {
 
+  //Default tweet fetch count
+  DEFAULT_TWEET_LIMIT: 20,
+
   //Tweets limit
   TOP_TWEETS_LIMIT_FREE: 5,
   TOP_TWEETS_LIMIT_PAID: 10,

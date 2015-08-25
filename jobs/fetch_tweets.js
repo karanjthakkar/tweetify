@@ -94,7 +94,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
 
     //Fetch tweets using last_read_tweet_id or last 100 tweets
     if (favUser.last_read_tweet_id === undefined) {
-      options['count'] = 20;
+      options['count'] = Constants.DEFAULT_TWEET_LIMIT;
     } else {
       options['since_id'] = favUser.last_read_tweet_id;
     }
