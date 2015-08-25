@@ -24,7 +24,7 @@ module.exports = function(app, passport) {
   // request.  The first step in Twitter authentication will involve redirecting
   // the user to twitter.com.  After authorization, the Twitter will redirect
   // the user back to this application at /auth/twitter/callback
-  app.get('/auth/twitter', passport.authenticate('twitter'));
+  app.get('/auth/twitter', passport.authenticate('twitter', { forceLogin: true }));
 
   // GET /auth/twitter/callback
   // Use passport.authenticate() as route middleware to authenticate the
@@ -36,15 +36,20 @@ module.exports = function(app, passport) {
       failureRedirect: '/'
     }),
     function(req, res) {
-      res.redirect('/account');
+      res.redirect('//localhost:4200/?code=' + req.user.id);
     });
 
-  app.get('/logout', function(req, res) {
+  app.post('/logout', function(req, res) {
     req.logout();
-    res.redirect('/');
+    res.status(200).json({
+      message: 'Successfully logged out'
+    })
   });
 
   /* Client Side API's */
+
+  //Get user profile
+  app.get('/users/:id', UserController.getUserData);
 
   //Get and Save/Update Application Tokens
   app.get('/application_tokens', TokenController.getApplicationToken);
@@ -57,6 +62,10 @@ module.exports = function(app, passport) {
   app.get('/fav_users', OptionController.getFavoriteUsers);
   app.post('/fav_users', OptionController.saveFavoriteUsers);
 
+  //Get and Save/Update Tweet Options
+  app.get('/tweet_options', OptionController.getTweetOptions);
+  app.post('/tweet_options', OptionController.saveTweetOptions);
+
   //Get and Save/Update Favorite Keywords
   app.get('/fav_keywords', OptionController.getKeywords);
   app.post('/fav_keywords', OptionController.saveKeywords);
@@ -64,6 +73,10 @@ module.exports = function(app, passport) {
   //Fetch tweets for a user
   app.get('/posted_tweets', UserController.getPostedTweets);
   app.get('/scheduled_tweets', UserController.getScheduledTweets);
+
+  //Turn posting ON and OFF
+  app.get('/activity', OptionController.getAccountActivity);
+  app.post('/activity', OptionController.saveAccountActivity);
 
 };
 

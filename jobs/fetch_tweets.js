@@ -1,6 +1,8 @@
 var fs = require('fs'),
   path = require('path'),
   _ = require('lodash'),
+  twttr = require('twitter-text'),
+  Constants = require('../constants'),
   moment = require('moment'),
   async = require('async'),
   Twit = require('twit'),
@@ -25,11 +27,16 @@ var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
   if (err) {
-    console.log(Date.now(), ': Fetch Tweets Cron Stopped ', err);
+    console.log(Date.now() + ' - Fetch Tweets Cron Stopped - ' + err);
   } else {
+
+    console.log(Date.now() + ' - Global Fetch Cron Started');
+
     _.each(users, function(user) {
       if (user.application_token_expired) {
-        console.log(Date.now(), ': Application token invalid or expired ', user.id);
+        console.log(Date.now() + ' - Application token invalid or expired ' + user.id);
+      } else if (user.activity === 'OFF') {
+        console.log(Date.now() + ' - Activity turned off - ' + user.id);
       } else {
 
         var oldCron = user.last_cron_run_time,
@@ -39,6 +46,8 @@ User.find({}, function(err, users) {
         if (!isHourComplete) {
           return;
         }
+
+        console.log('Fetch Tweets Cron started for user id - ' + user.id);
 
         //Get fav_users for each user
         var favUsers = user.fav_users,
@@ -63,14 +72,16 @@ User.find({}, function(err, users) {
           if (tweets.length > 0) {
             findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
           } else {
-            console.log('Fetch Tweets Cron complete for user id: ' + user.id + '. No new tweets.');
+            console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets.');
           }
 
         });
-
       }
 
     });
+
+    console.log(Date.now() + ' - Global Fetch Cron Init Complete');
+
   }
 });
 
@@ -83,7 +94,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
 
     //Fetch tweets using last_read_tweet_id or last 100 tweets
     if (favUser.last_read_tweet_id === undefined) {
-      options['count'] = 100;
+      options['count'] = 20;
     } else {
       options['since_id'] = favUser.last_read_tweet_id;
     }
@@ -91,7 +102,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
     T.get('statuses/user_timeline', options, function(err, tweets) {
       var result = {}
       if (err) {
-        console.log(Date.now(), ' : error fetching status for ', favUser.username, err.message);
+        console.log(Date.now() + ' - error fetching status for ' + favUser.username + ' - ' + err.message);
         result = {
           user: user,
           favUser: favUser,
@@ -124,23 +135,17 @@ function filterTweetsByKeyword(user, tweets) {
 }
 
 function findAndSaveTopTweetsForUser(user, tweets) {
-  var sortedTweets = _.sortByOrder(tweets, function(tweet) {
-    var score = 0;
-    //If status is RT'd, check original status count
-    if (tweet.retweeted_status) {
-      //Add score using RT and fav
-      score = tweet.retweeted_status.retweet_count + tweet.retweeted_status.favorite_count;
-    } else {
-      score = tweet.retweet_count + tweet.favorite_count;
-    }
-    tweet['score'] = score;
-    return score;
-  }, 'desc');
 
-  //Get top 10 from sorted list and push them in the user object
-  var top10 = _.slice(sortedTweets, 0, 10);
+  var filteredTweets = _.filter(tweets, filterByLengthAndSpam.bind({user: user})),
+    sortedTweets = _.sortByOrder(filteredTweets, [
+      sortyByEngagement
+    ], ['desc', 'desc']),
+    TOP_TWEET_LIMIT = Constants['TOP_TWEETS_LIMIT_' + user.user_type];
+
+  //Get top from sorted list and push them in the user object
+  var topTweets = _.slice(sortedTweets, 0, TOP_TWEET_LIMIT);
   var currentTime = moment();
-  top10 = top10.map(function(tweet) {
+  topTweets = topTweets.map(function(tweet) {
     var type = 'original';
     if (tweet.retweeted_status) {
       type = 'retweet'
@@ -150,26 +155,78 @@ function findAndSaveTopTweetsForUser(user, tweets) {
 
     return {
       tweet_score: tweet.score,
-      tweet_text: tweet.retweeted_status ? tweet.retweeted_status.text : tweet.text,
+      tweet_text: getTweetText(tweet, user),
       original_tweet_id: tweet.retweeted_status ? tweet.retweeted_status.id_str : tweet.id_str,
       tweet_type: type,
       scheduled_at: parseInt(currentTime.format('x')),
       posted: false
     };
   });
-  user.top_tweets = user.top_tweets.concat(top10);
+  user.top_tweets = user.top_tweets.concat(topTweets);
 
   //Increment Tweet analysed count in DB
   user.total_tweets_analysed += tweets.length;
 
   user.save(function(err) {
     if (err) {
-      console.log(Date.now(), ' : Error while saving top_tweets ', user.id, err);
+      console.log(Date.now() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
     }
   });
-  console.log('Fetch Tweets Cron complete for user id: ' + user.id + '. New tweets: ' + tweets.length);
+  console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length);
 }
 
+function sortyByEngagement(tweet) {
+  var score = 0;
+  //If status is RT'd, check original status count
+  if (tweet.retweeted_status) {
+    //Add score using RT and fav
+    score = tweet.retweeted_status.retweet_count + tweet.retweeted_status.favorite_count;
+  } else {
+    score = tweet.retweet_count + tweet.favorite_count;
+  }
+
+  tweet['score'] = score;
+  return score;
+}
+
+function filterByLengthAndSpam(tweet) {
+  return filterByLength(tweet, this.user) && filterSpam(tweet, this.user);
+}
+
+function filterByLength(tweet, user) {
+  var isLessThanMax = twttr.getTweetLength(getTweetText(tweet, user)) < 140;
+  return isLessThanMax;
+}
+
+function filterSpam(tweet, user) {
+  var text = getTweetText(tweet, user, false);
+
+  /* Patterns given less score:
+  *  1. Starting with @ -> /^\s{0,}[@|\.@]/gi
+  *  2. Starting with .@ -> /^\s{0,}[@|\.@]/gi
+  *  3. Containing … OR ... -> /\…|\.{3}/gi (This normally means the text was truncated by twitter since it was posted by a third party app with text length > 140)
+  */
+  if (/^\s{0,}[RT|@|\.@]/gi.test(text) || /\…|\.{3}/gi.test(text)) {
+    return false;
+  }
+
+  return true;
+}
+
+function getTweetText(tweet, user, withCredits) {
+  var shouldPrependCredits = (user.tweet_action === 'TEXT_RT'),
+    actualTweet = tweet.retweeted_status || tweet,
+    text = actualTweet.text;
+
+  withCredits = withCredits === undefined ? true : withCredits;
+
+  if (shouldPrependCredits && withCredits) {
+    var credits = 'RT @' + actualTweet.user.screen_name + ': ';
+    text = credits + text;
+  }
+
+  return utils.processTweet(text);
+}
 
 function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId) {
   var tempFav = _.map(user.fav_users, function(fav) {
@@ -182,7 +239,7 @@ function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId
   user.last_cron_run_time = Date.now();
   user.save(function(err) {
     if (err) {
-      console.log(Date.now(), ' : Error while saving last_read_tweet_id ', user.id, err);
+      console.log(Date.now() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
     }
   });
 }

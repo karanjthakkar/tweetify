@@ -6,6 +6,7 @@ var mongoose = require('mongoose'),
  */
 var UserSchema = new Schema({
   id: Number,
+  name: String,
   username: String,
   description: String,
   location: String,
@@ -17,6 +18,10 @@ var UserSchema = new Schema({
   favorites: String,
   statuses: String,
   lists: String,
+  user_type: {
+    type: String,
+    default: 'FREE'
+  },
   application_token_expired: {
     type: Boolean,
     default: true
@@ -57,6 +62,10 @@ var UserSchema = new Schema({
       default: Date.now
     }
   }],
+  tweet_action: { //Types: COPY, NATIVE_RT, TEXT_RT, QUOTE
+    type: String,
+    default: 'COPY'
+  },
   last_cron_run_time: Number,
   top_tweets: [{
     original_tweet_id: String,
@@ -71,6 +80,14 @@ var UserSchema = new Schema({
   total_tweets_analysed: {
     type: Number,
     default: 0
+  },
+  total_tweets_posted: {
+    type: Number,
+    default: 0
+  },
+  activity: {
+    type: String,
+    default: 'ON'
   }
 });
 

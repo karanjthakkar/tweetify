@@ -2,27 +2,150 @@ var mongoose = require('mongoose'),
   User = mongoose.model('User'),
   _ = require('lodash'),
   Twit = require('twit'),
-  Constants = {
-    MINIMUM_FAV_USERS: 5,
-    MINIMUM_FAV_KEYWORDS: 10
-  };
+  Constants = require('../constants');
 
 //TODO: If old keyword has a saved date, it needs to be maintained on update IMPORTANT
 //TODO: Validate data received from frontend. Check keys
 exports.getFavoriteUsers = function(req, res) {
-  getDataForKey(req, res, 'fav_users');
+  getFavDataForKey(req, res, 'fav_users');
 };
 
 exports.saveFavoriteUsers = function(req, res) {
-  saveDataForKey(req, res, 'fav_users');
+  saveFavDataForKey(req, res, 'fav_users');
 };
 
 exports.getKeywords = function(req, res) {
-  getDataForKey(req, res, 'fav_keywords');
+  getFavDataForKey(req, res, 'fav_keywords');
 };
 
 exports.saveKeywords = function(req, res) {
-  saveDataForKey(req, res, 'fav_keywords');
+  saveFavDataForKey(req, res, 'fav_keywords');
+};
+
+exports.getTweetOptions = function(req, res) {
+  if (req.isAuthenticated()) {
+    User.findOne({
+      id: req.user.id
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else if (user.application_token_expired) {
+        var error = {
+          success: false,
+          message: 'You have not entered your application access token or your token has expired.'
+        };
+        res.status(401).json(error);
+      } else {
+        var data = user['tweet_action'];
+        res.status(200).json(data);
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res)
+  }
+};
+
+exports.saveTweetOptions = function(req, res) {
+  if (req.isAuthenticated()) {
+
+    var option = req.body['tweet_action'];
+
+    if (['COPY', 'NATIVE_RT', 'TEXT_RT', 'QUOTE'].indexOf(option) === -1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid tweet option'
+      });
+    }
+
+    User.findOne({
+      id: req.user.id
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else {
+        user.tweet_action = req.body['tweet_action'];
+        user.last_access_date = Date.now();
+        user.save(function(err, user) {
+          if (err) {
+            res.status(500).json({
+              message: 'There was an error saving your favorite values'
+            });
+          } else {
+            res.status(200).json();
+          }
+        });
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res);
+  }
+};
+
+exports.getAccountActivity = function(req, res) {
+  if (req.isAuthenticated()) {
+    User.findOne({
+      id: req.user.id
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else if (user.application_token_expired) {
+        var error = {
+          success: false,
+          message: 'You have not entered your application access token or your token has expired.'
+        };
+        res.status(401).json(error);
+      } else {
+        var data = user['activity'];
+        res.status(200).json(data);
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res)
+  }
+};
+
+exports.saveAccountActivity = function(req, res) {
+  if (req.isAuthenticated()) {
+
+    var option = req.body['activity'];
+
+    if (['ON', 'OFF'].indexOf(option) === -1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid activity'
+      });
+    }
+
+    User.findOne({
+      id: req.user.id
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else {
+        user.activity = req.body['activity'];
+        user.last_access_date = Date.now();
+        user.save(function(err, user) {
+          if (err) {
+            res.status(500).json({
+              message: 'There was an error saving your favorite values'
+            });
+          } else {
+            res.status(200).json();
+          }
+        });
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res);
+  }
 };
 
 exports.checkUsername = function(req, res) {
@@ -68,7 +191,7 @@ exports.checkUsername = function(req, res) {
   }
 }
 
-function getDataForKey(req, res, key) {
+function getFavDataForKey(req, res, key) {
   if (req.isAuthenticated()) {
     User.findOne({
       id: req.user.id
@@ -93,10 +216,12 @@ function getDataForKey(req, res, key) {
   }
 }
 
-function saveDataForKey(req, res, key) {
+function saveFavDataForKey(req, res, key) {
   if (req.isAuthenticated()) {
     var favData = JSON.parse(req.body[key]),
-      minKey = 'MINIMUM_' + key.toUpperCase();
+      user = req.user,
+      minKey = 'MINIMUM_' + key.toUpperCase() + '_' + user.user_type,
+      maxKey = 'MAXIMUM_' + key.toUpperCase() + '_' + user.user_type;
 
     //Make all username lowercase
     favItems = favData.map(function(item) {
@@ -111,7 +236,7 @@ function saveDataForKey(req, res, key) {
       });
     }
 
-    if (_.isArray(uniqueFavData) && !_.isEmpty(uniqueFavData) && uniqueFavData.length >= Constants[minKey]) {
+    if (_.isArray(uniqueFavData) && !_.isEmpty(uniqueFavData) && uniqueFavData.length >= Constants[minKey] && uniqueFavData.length <= Constants[maxKey]) {
       User.findOne({
         id: req.user.id
       }, function(err, user) {
@@ -138,9 +263,13 @@ function saveDataForKey(req, res, key) {
           });
         }
       });
-    } else {
-      res.status(401).json({
+    } else if (uniqueFavData.length < Constants[minKey]) {
+      res.status(400).json({
         message: 'Please provide atleast ' + Constants[minKey] + ' values for finding better content'
+      });
+    } else {
+      res.status(400).json({
+        message: 'You can add a maximum of ' + Constants[maxKey] + ' values.'
       });
     }
   } else {

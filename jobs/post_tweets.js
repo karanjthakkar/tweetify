@@ -1,6 +1,7 @@
 var fs = require('fs'),
   path = require('path'),
   _ = require('lodash'),
+  utils = require('../utils'),
   moment = require('moment'),
   async = require('async'),
   Twit = require('twit'),
@@ -27,6 +28,9 @@ User.find({}, function(err, users) {
   if (err) {
     console.log(Date.now(), ': Post Tweets Cron Stopped ', err);
   } else {
+
+    console.log(Date.now() + ' - Global Post Cron Started');
+
     _.each(users, function(user) {
       if (user.application_token_expired) {
         console.log(Date.now(), ': Application token invalid or expired ', user.id);
@@ -54,19 +58,30 @@ User.find({}, function(err, users) {
       }
 
     });
+
+    console.log(Date.now() + ' - Global Post Cron Init Complete');
+
   }
 });
 
 function postTweet(T, user, tweet) {
-  T.post('statuses/update', {
-    status: tweet.tweet_text
-  }, function(err, posted_tweet) {
-    if (err) {
-      console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
-    } else {
-      saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str);
-    }
-  });
+  if (user.tweet_action === 'NATIVE_RT') {
+    utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
+      if (err) {
+        console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+      } else {
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str);
+      }
+    });
+  } else {
+    utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
+      if (err) {
+        console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+      } else {
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str);
+      }
+    });
+  }
 }
 
 function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id) {
@@ -77,7 +92,12 @@ function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id) {
     }
     return topTweet;
   });
+
   user.top_tweets = tempTopTweets;
+
+  //Increment Tweet posted count in DB
+  user.total_tweets_posted += 1;
+
   user.save(function(err) {
     if (err) {
       console.log(Date.now(), ' : Error while updating posted_tweet_id ', user.id, err);

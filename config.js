@@ -5,7 +5,7 @@ var config = {
     TWITTER_CONSUMER_KEY: process.env.tweetly_consumer_key,
     TWITTER_CONSUMER_SECRET: process.env.tweetly_consumer_secret
   },
-  prod: {
+  production: {
 
   }
 };

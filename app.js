@@ -23,6 +23,7 @@ fs.readdirSync(modelsPath).forEach(function (file) {
 });
 
 var UserController = require('./controllers/user');
+var User = mongoose.model('User');
 
 // Passport session setup.
 // To support persistent login sessions, Passport needs to be able to
@@ -36,7 +37,16 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(obj, done) {
-  done(null, obj);
+  User.findOne({
+    id: obj.id
+  }, function(err, user) {
+    var userObj = {
+      id: user.id,
+      user_type: user.user_type,
+      username: user.username
+    };
+    done(null, userObj);
+  })
 });
 
 // Use the TwitterStrategy within Passport.
@@ -49,24 +59,36 @@ passport.use(new TwitterStrategy({
     callbackURL: config.callbackURL
   },
   function(token, tokenSecret, profile, done) {
-    var user = {
-      id: profile._json.id,
-      description: profile._json.description,
-      username: profile._json.screen_name,
-      followers: profile._json.followers_count,
-      following: profile._json.friends_count,
-      favorites: profile._json.favourites_count,
-      statuses: profile._json.statuses_count,
-      lists: profile._json.listed_count,
-      profile_image_url: profile._json.profile_image_url_https || profile._json.profile_image_url,
-      profile_banner_url: profile._json.profile_banner_url,
-      twitter_token: token,
-      twitter_token_secret: tokenSecret,
-      access_level: profile._accessLevel
-    };
-    UserController.saveOrUpdateUserData(user, done);
+    process.nextTick(function() {
+      var user = {
+        id: profile._json.id,
+        description: profile._json.description,
+        name: profile._json.name,
+        username: profile._json.screen_name,
+        followers: profile._json.followers_count,
+        following: profile._json.friends_count,
+        favorites: profile._json.favourites_count,
+        statuses: profile._json.statuses_count,
+        lists: profile._json.listed_count,
+        profile_image_url: profile._json.profile_image_url_https || profile._json.profile_image_url,
+        profile_banner_url: profile._json.profile_banner_url,
+        twitter_token: token,
+        twitter_token_secret: tokenSecret,
+        access_level: profile._accessLevel
+      };
+      UserController.saveOrUpdateUserData(user, done);
+    });
   }
 ));
+
+//CORS middleware
+var allowCrossDomain = function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:4200');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+}
 
 // configure Express
 app.configure(function() {
@@ -87,6 +109,7 @@ app.configure(function() {
   // persistent login sessions (recommended).
   app.use(passport.initialize());
   app.use(passport.session());
+  app.use(allowCrossDomain);
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });

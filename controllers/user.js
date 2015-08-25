@@ -30,12 +30,40 @@ exports.saveOrUpdateUserData = function(userData, done) {
       user.save(function(err, user) {
         done(err, {
           id: user.id,
-          username: user.username
+          username: user.username,
+          user_type: user.user_type
         });
       });
     }
   });
 
+};
+
+exports.getUserData = function(req, res) {
+  var userId = parseInt(req.params.id);
+  if(req.user && req.user.id !== userId) {
+    return res.status(403).json({
+      message: 'You are not authorized to view this'
+    });
+  }
+  if (req.isAuthenticated()) {
+    var userId = req.user.id;
+
+    //Update or add new user to collection
+    User.findOne({
+      id: userId
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else {
+        return res.status(200).json(user);
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res);
+  }
 };
 
 exports.getPostedTweets = function(req, res) {
@@ -62,7 +90,7 @@ function getTweets(req, res, posted) {
         var data = _.filter(user.top_tweets, function(item) {
           return item.posted === posted;
         });
-        return res.status(200).json(data)
+        return res.status(200).json(data);
       }
     });
   } else {
