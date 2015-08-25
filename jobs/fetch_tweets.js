@@ -3,6 +3,7 @@ var fs = require('fs'),
   _ = require('lodash'),
   twttr = require('twitter-text'),
   Constants = require('../constants'),
+  utils = require('../utils'),
   moment = require('moment'),
   async = require('async'),
   Twit = require('twit'),
@@ -32,58 +33,65 @@ User.find({}, function(err, users) {
 
     console.log(Date.now() + ' - Global Fetch Cron Started');
 
-    _.each(users, function(user) {
+    async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
         console.log(Date.now() + ' - Application token invalid or expired ' + user.id);
       } else if (user.activity === 'OFF') {
         console.log(Date.now() + ' - Activity turned off - ' + user.id);
       } else {
-
-        var oldCron = user.last_cron_run_time,
-          newCron = Date.now(),
-          isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
-
-        if (!isHourComplete) {
-          return;
-        }
-
-        console.log('Fetch Tweets Cron started for user id - ' + user.id);
-
-        //Get fav_users for each user
-        var favUsers = user.fav_users,
-          T = new Twit({
-            consumer_key: user.twitter_app_consumer_key,
-            consumer_secret: user.twitter_app_consumer_secret,
-            access_token: user.twitter_app_access_token,
-            access_token_secret: user.twitter_app_access_token_secret
-          }),
-          fetchTweetsForEachFavUserFunctions = [];
-
-        _.each(favUsers, function(favUser) {
-          fetchTweetsForEachFavUserFunctions.push(fetchTweetsForEachFavUser(T, user, favUser));
-        });
-
-        async.parallel(fetchTweetsForEachFavUserFunctions, function(err, tweetsForAllFavUsersOfOneUser) {
-          var tweets = [];
-          tweetsForAllFavUsersOfOneUser.forEach(function(item, index) {
-            tweets = tweets.concat(item.data);
-          });
-
-          if (tweets.length > 0) {
-            findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets);
-          } else {
-            console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets.');
-          }
-
-        });
+        startCronForUser(user, eachUserCallback)
       }
-
+    }, function() {
+      console.log(Date.now() + ' - Global Fetch Cron Init Complete');
+      closeMongoConnection();
     });
-
-    console.log(Date.now() + ' - Global Fetch Cron Init Complete');
-
   }
 });
+
+function startCronForUser(user, eachUserCallback) {
+  var oldCron = user.last_cron_run_time,
+    newCron = Date.now(),
+    isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
+
+  if (!isHourComplete) {
+    return eachUserCallback(null);
+  }
+
+  console.log('Fetch Tweets Cron started for user id - ' + user.id);
+
+  //Get fav_users for each user
+  var favUsers = user.fav_users,
+    T = new Twit({
+      consumer_key: user.twitter_app_consumer_key,
+      consumer_secret: user.twitter_app_consumer_secret,
+      access_token: user.twitter_app_access_token,
+      access_token_secret: user.twitter_app_access_token_secret
+    }),
+    fetchTweetsForEachFavUserFunctions = [];
+
+  _.each(favUsers, function(favUser) {
+    fetchTweetsForEachFavUserFunctions.push(fetchTweetsForEachFavUser(T, user, favUser));
+  });
+
+  async.parallel(fetchTweetsForEachFavUserFunctions, function(err, tweetsForAllFavUsersOfOneUser) {
+    var tweets = [];
+    tweetsForAllFavUsersOfOneUser.forEach(function(item, index) {
+      tweets = tweets.concat(item.data);
+    });
+
+    if (tweets.length > 0) {
+      findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets, eachUserCallback);
+    } else {
+      console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets.');
+      eachUserCallback(null);
+    }
+
+  });
+}
+
+function closeMongoConnection() {
+  mongoose.connection.close();
+}
 
 function fetchTweetsForEachFavUser(T, user, favUser) {
   return function(callback) {
@@ -134,7 +142,7 @@ function filterTweetsByKeyword(user, tweets) {
   });
 }
 
-function findAndSaveTopTweetsForUser(user, tweets) {
+function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
 
   var filteredTweets = _.filter(tweets, filterByLengthAndSpam.bind({user: user})),
     sortedTweets = _.sortByOrder(filteredTweets, [
@@ -171,8 +179,9 @@ function findAndSaveTopTweetsForUser(user, tweets) {
     if (err) {
       console.log(Date.now() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
     }
+    console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length);
+    eachUserCallback(null);
   });
-  console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length);
 }
 
 function sortyByEngagement(tweet) {

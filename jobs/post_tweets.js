@@ -31,60 +31,69 @@ User.find({}, function(err, users) {
 
     console.log(Date.now() + ' - Global Post Cron Started');
 
-    _.each(users, function(user) {
+    async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
         console.log(Date.now(), ': Application token invalid or expired ', user.id);
       } else {
-
-        //Get top_tweets for each user
-        var now = Date.now(),
-          tweetsToBePosted = _.filter(user.top_tweets, function(tweet) {
-            return (tweet.posted === false) && (tweet.scheduled_at <= now);
-          }),
-          T = new Twit({
-            consumer_key: user.twitter_app_consumer_key,
-            consumer_secret: user.twitter_app_consumer_secret,
-            access_token: user.twitter_app_access_token,
-            access_token_secret: user.twitter_app_access_token_secret
-          }),
-          postTweetsForEachTopTweetFunctions = [];
-
-        console.log('Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
-
-        _.each(tweetsToBePosted, function(tweet) {
-          postTweet(T, user, tweet);
-        });
-
+        startCronForUser(user, eachUserCallback);
       }
-
+    }, function() {
+      console.log(Date.now() + ' - Global Post Cron Init Complete');
+      closeMongoConnection();
     });
-
-    console.log(Date.now() + ' - Global Post Cron Init Complete');
-
   }
 });
 
-function postTweet(T, user, tweet) {
-  if (user.tweet_action === 'NATIVE_RT') {
-    utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
-      if (err) {
-        console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
-      } else {
-        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str);
-      }
-    });
-  } else {
-    utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
-      if (err) {
-        console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
-      } else {
-        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str);
-      }
-    });
-  }
+function startCronForUser(user, eachUserCallback) {
+  //Get top_tweets for each user
+  var now = Date.now(),
+    tweetsToBePosted = _.filter(user.top_tweets, function(tweet) {
+      return (tweet.posted === false) && (tweet.scheduled_at <= now);
+    }),
+    T = new Twit({
+      consumer_key: user.twitter_app_consumer_key,
+      consumer_secret: user.twitter_app_consumer_secret,
+      access_token: user.twitter_app_access_token,
+      access_token_secret: user.twitter_app_access_token_secret
+    }),
+    postTweetsForEachTopTweetFunctions = [];
+
+  console.log('Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
+
+  _.each(tweetsToBePosted, function(tweet) {
+    postTweetsForEachTopTweetFunctions.push(postTweet(T, user, tweet));
+  });
+
+  async.parallel(postTweetsForEachTopTweetFunctions, function(err) {
+    eachUserCallback(null);
+  });
 }
 
-function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id) {
+function postTweet(T, user, tweet) {
+  return function(callback) {
+    if (user.tweet_action === 'NATIVE_RT') {
+      utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
+        if (err) {
+          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          callback(null);
+        } else {
+          saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str, callback);
+        }
+      });
+    } else {
+      utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
+        if (err) {
+          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          callback(null);
+        } else {
+          saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str, callback);
+        }
+      });
+    }
+  };
+}
+
+function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, callback) {
   var tempTopTweets = _.map(user.top_tweets, function(topTweet) {
     if (original_id === topTweet.original_tweet_id) {
       topTweet.posted_tweet_id = id;
@@ -102,5 +111,10 @@ function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id) {
     if (err) {
       console.log(Date.now(), ' : Error while updating posted_tweet_id ', user.id, err);
     }
+    callback(null);
   });
+}
+
+function closeMongoConnection() {
+  mongoose.connection.close();
 }
