@@ -17,6 +17,8 @@ module.exports = {
   MINIMUM_FAV_KEYWORDS_FREE: 10,
   MINIMUM_FAV_KEYWORDS_PAID: 10,
   MAXIMUM_FAV_KEYWORDS_FREE: 15,
-  MAXIMUM_FAV_KEYWORDS_PAID: 50
+  MAXIMUM_FAV_KEYWORDS_PAID: 50,
+
+  WELCOME_TWEET_TEXT: '@{username}, pretty excited to see you sign up! How can I help? ^_^'
 
 }

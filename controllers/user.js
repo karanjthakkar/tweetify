@@ -1,5 +1,6 @@
 var mongoose = require('mongoose'),
   _ = require('lodash'),
+  utils = require('../utils'),
   User = mongoose.model('User');
 
 exports.saveOrUpdateUserData = function(userData, done) {
@@ -21,6 +22,7 @@ exports.saveOrUpdateUserData = function(userData, done) {
           last_access_date: now
         });
         user = new User(userData);
+        utils.sendWelcomeTweet(user);
       } else { //Else update existing user
         _.forOwn(userData, function(value, key) {
           user[key] = userData[key];

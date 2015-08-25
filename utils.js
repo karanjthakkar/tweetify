@@ -1,3 +1,12 @@
+var Twit = require('twit'),
+  Constants = require('./constants'),
+  config = require('./config'),
+  _ = require('lodash'),
+  argv = require('minimist')(process.argv.slice(2));
+
+//Setup config based on environment
+config = (argv['environment'] === 'prod' ? config.prod : config.test);;
+
 module.exports = {
 
   tweet: function(T, text, callback) {
@@ -14,6 +23,22 @@ module.exports = {
     }, function(err, data, response) {
       callback(err, data);
     });
+  },
+
+  tweetToClient: function(text, callback) {
+    console.log(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET);
+    T = new Twit({
+      consumer_key: config.TWITTER_CONSUMER_KEY,
+      consumer_secret: config.TWITTER_CONSUMER_SECRET,
+      access_token: config.TWITTER_ACCESS_TOKEN,
+      access_token_secret: config.TWITTER_ACCESS_TOKEN_SECRET
+    });
+    this.tweet(T, text, callback);
+  },
+
+  sendWelcomeTweet: function(user) {
+    var text = Constants.WELCOME_TWEET_TEXT.replace('{username}', user.username);
+    this.tweetToClient(text, _.noop);
   },
 
   processTweet: function(text) {
