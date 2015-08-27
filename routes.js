@@ -36,7 +36,7 @@ module.exports = function(app, passport) {
       failureRedirect: '/'
     }),
     function(req, res) {
-      res.redirect('//tweetify.io/?code=' + req.user.id);
+      res.redirect('//tweetify.io:4200/?code=' + req.user.id);
     });
 
   app.post('/logout', function(req, res) {
