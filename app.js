@@ -117,4 +117,4 @@ app.configure(function() {
 // Routing
 require('./routes')(app, passport);
 
-app.listen(80);
+app.listen(3000);
