@@ -83,7 +83,7 @@ passport.use(new TwitterStrategy({
 
 //CORS middleware
 var allowCrossDomain = function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:4200 http://tweetify.io:4200 http://tweetify.io');
+  res.header('Access-Control-Allow-Origin', 'http://api.tweetify.io');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header("Access-Control-Allow-Credentials", "true");
