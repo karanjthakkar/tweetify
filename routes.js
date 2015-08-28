@@ -7,18 +7,6 @@ var TokenController = require('./controllers/token'),
  */
 module.exports = function(app, passport) {
 
-  //Landing page
-  app.get('/', function(req, res) {
-    res.render('login');
-  });
-
-  //Post Login Application page
-  app.get('/account', ensureAuthenticated, function(req, res) {
-    res.render('account', {
-      user: req.user
-    });
-  });
-
   // GET /auth/twitter
   // Use passport.authenticate() as route middleware to authenticate the
   // request.  The first step in Twitter authentication will involve redirecting
@@ -33,20 +21,20 @@ module.exports = function(app, passport) {
   // which, in this example, will redirect the user to the home page.
   app.get('/auth/twitter/callback',
     passport.authenticate('twitter', {
-      failureRedirect: '/'
+      failureRedirect: '//tweetify.io/?code=0'
     }),
     function(req, res) {
-      res.redirect('//tweetify.io:4200/?code=' + req.user.id);
+      res.redirect('//tweetify.io/?code=' + req.user.id);
     });
 
   app.post('/logout', function(req, res) {
     req.logout();
-    res.status(200).json({
-      message: 'Successfully logged out'
-    })
+    res.status(200);
   });
 
-  /* Client Side API's */
+  /**
+  * Client Side API's
+  */
 
   //Get user profile
   app.get('/users/:id', UserController.getUserData);
@@ -79,15 +67,3 @@ module.exports = function(app, passport) {
   app.post('/activity', OptionController.saveAccountActivity);
 
 };
-
-// Simple route middleware to ensure user is authenticated.
-// Use this route middleware on any resource that needs to be protected.  If
-// the request is authenticated (typically via a persistent login session),
-// the request will proceed.  Otherwise, the user will be redirected to the
-// login page.
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/');
-}

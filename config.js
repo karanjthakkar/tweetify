@@ -7,7 +7,7 @@ var config = {
     TWITTER_ACCESS_TOKEN: process.env.tweetly_access_token,
     TWITTER_ACCESS_TOKEN_SECRET: process.env.tweetly_access_token_secret
   },
-  production: {
+  prod: {
 
   }
 };

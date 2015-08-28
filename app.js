@@ -92,8 +92,6 @@ var allowCrossDomain = function(req, res, next) {
 
 // configure Express
 app.configure(function() {
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'ejs');
   app.use(express.logger());
   app.use(express.cookieParser());
   app.use(express.bodyParser());
@@ -111,7 +109,6 @@ app.configure(function() {
   app.use(passport.session());
   app.use(allowCrossDomain);
   app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
 });
 
 // Routing
