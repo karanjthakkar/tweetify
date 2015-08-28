@@ -5,7 +5,7 @@ var Twit = require('twit'),
   argv = require('minimist')(process.argv.slice(2));
 
 //Setup config based on environment
-config = (argv['environment'] === 'prod' ? config.prod : config.test);;
+config = config[argv['environment'] || 'local'];;
 
 module.exports = {
 

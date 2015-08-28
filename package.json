@@ -1,14 +1,14 @@
 {
-  "name": "tweetlyapp",
+  "name": "tweetify",
   "version": "0.0.1",
-  "description": "Tweetly - We take care of your content",
+  "description": "Tweetify - We take care of your content",
   "main": "app.js",
   "scripts": {
     "test": "npm test"
   },
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/karanjthakkar/tweetlyapp.git"
+    "url": "https://bitbucket.org/karanjthakkar/tweetify.git"
   },
   "keywords": [
     "twitter",

@@ -11,7 +11,7 @@ var fs = require('fs'),
   mongoose = require('mongoose');
 
 //Setup config based on environment
-config = (argv['environment'] === 'prod' ? config.prod : config.test);
+config = config[argv['environment'] || 'local'];
 
 //initiate DB connection using mongoose
 mongoose.connect(config.dbUrl);

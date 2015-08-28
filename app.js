@@ -11,7 +11,7 @@ var fs = require('fs'),
   app = express();
 
 //Setup config based on environment
-config = (argv['environment'] === 'prod' ? config.prod : config.test);
+config = config[argv['environment'] || 'local'];
 
 //initiate DB connection using mongoose
 mongoose.connect(config.dbUrl);
@@ -83,7 +83,7 @@ passport.use(new TwitterStrategy({
 
 //CORS middleware
 var allowCrossDomain = function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', 'http://api.tweetify.io');
+  res.header('Access-Control-Allow-Origin', config.frontendUrl);
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header("Access-Control-Allow-Credentials", "true");
@@ -97,7 +97,7 @@ app.configure(function() {
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(express.session({
-    secret: 'tweetlyapp-geekykaran',
+    secret: 'tweetify-geekykaran-a2da059017ef619e25f6347bf04a3b41',
     maxAge: new Date(Date.now() + 3600000),
     store: new MongoStore({
       mongooseConnection: mongoose.connection

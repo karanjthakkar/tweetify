@@ -1,6 +1,11 @@
 var TokenController = require('./controllers/token'),
   OptionController = require('./controllers/option');
-  UserController = require('./controllers/user');
+  UserController = require('./controllers/user'),
+  argv = require('minimist')(process.argv.slice(2)),
+  config = require('./config');
+
+//Setup config based on environment
+config = config[argv['environment'] || 'local'];
 
 /**
  * Application routes
@@ -21,10 +26,10 @@ module.exports = function(app, passport) {
   // which, in this example, will redirect the user to the home page.
   app.get('/auth/twitter/callback',
     passport.authenticate('twitter', {
-      failureRedirect: '//tweetify.io/?code=0'
+      failureRedirect: config.frontendUrl + '/?code=0'
     }),
     function(req, res) {
-      res.redirect('//tweetify.io/?code=' + req.user.id);
+      res.redirect(config.frontendUrl + '/?code=' + req.user.id);
     });
 
   app.post('/logout', function(req, res) {
