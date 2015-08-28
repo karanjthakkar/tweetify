@@ -60,7 +60,25 @@ exports.getUserData = function(req, res) {
           message: 'There was an error finding your records'
         });
       } else {
-        return res.status(200).json(user);
+        var userObject = {
+          id: user.id,
+          description: user.description,
+          name: user.name,
+          username: user.username,
+          followers: user.followers,
+          following: user.following,
+          profile_image_url: user.profile_image_url,
+          profile_banner_url: user.profile_banner_url,
+          last_cron_run_time: user.last_cron_run_time,
+          total_tweets_posted: user.total_tweets_posted,
+          total_tweets_analysed: user.total_tweets_analysed,
+          tweet_action: user.tweet_action,
+          fav_keywords: user.fav_keywords,
+          fav_users: user.fav_users,
+          user_type: user.user_type,
+          activity: user.activity
+        };
+        return res.status(200).json(userObject);
       }
     });
   } else {
