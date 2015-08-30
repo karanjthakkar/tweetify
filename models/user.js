@@ -99,7 +99,7 @@ var UserSchema = new Schema({
   },
   onboard_tweet_action: {
     type: Boolean,
-    default: true
+    default: false
   }
 });
 

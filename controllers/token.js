@@ -73,7 +73,9 @@ exports.saveApplicationToken = function(req, res) {
                     message: 'There was an error saving your application keys'
                   });
                 } else {
-                  res.status(200).json();
+                  res.status(200).json({
+                    success: true
+                  });
                 }
               });
             }

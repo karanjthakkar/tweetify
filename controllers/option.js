@@ -76,7 +76,9 @@ exports.saveTweetOptions = function(req, res) {
               message: 'There was an error saving your favorite values'
             });
           } else {
-            res.status(200).json();
+            res.status(200).json({
+              success: true
+            });
           }
         });
       }
@@ -139,7 +141,9 @@ exports.saveAccountActivity = function(req, res) {
               message: 'There was an error saving your favorite values'
             });
           } else {
-            res.status(200).json();
+            res.status(200).json({
+              success: true
+            });
           }
         });
       }
@@ -177,12 +181,20 @@ exports.checkUsername = function(req, res) {
         }, function(err, user) {
           if (err) {
             var message = err.code === 63 ? err.message : 'User does not exist.'
-            return res.status(401).json({
+            return res.status(404).json({
               success: false,
               message: message
             });
           } else {
-            return res.status(200).json();
+            var userObject = {
+              profile_image_url: user.profile_image_url,
+              username: user.screen_name,
+              name: user.name
+            };
+            return res.status(200).json({
+              success: true,
+              user: userObject
+            });
           }
         })
       }
@@ -231,7 +243,7 @@ function saveFavDataForKey(req, res, key) {
       });
     }
 
-    favData = JSON.parse(req.body[key]);
+    favData = req.body[key];
 
     //Make all username lowercase
     favItems = favData.map(function(item) {
@@ -284,7 +296,9 @@ function saveFavDataForKey(req, res, key) {
                 message: 'There was an error saving your favorite values'
               });
             } else {
-              res.status(200).json();
+              res.status(200).json({
+                success: true
+              });
             }
           });
         }
