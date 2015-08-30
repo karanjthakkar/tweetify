@@ -76,7 +76,9 @@ exports.getUserData = function(req, res) {
           fav_keywords: user.fav_keywords,
           fav_users: user.fav_users,
           user_type: user.user_type,
-          activity: user.activity
+          activity: user.activity,
+          onboard_fav_users: user.onboard_fav_users,
+          onboard_fav_keywords: user.onboard_fav_keywords
         };
         return res.status(200).json(userObject);
       }
