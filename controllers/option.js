@@ -69,6 +69,7 @@ exports.saveTweetOptions = function(req, res) {
       } else {
         user.tweet_action = req.body['tweet_action'];
         user.last_access_date = Date.now();
+        user.onboard_tweet_action = true;
         user.save(function(err, user) {
           if (err) {
             res.status(500).json({

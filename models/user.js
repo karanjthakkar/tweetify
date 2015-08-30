@@ -96,6 +96,10 @@ var UserSchema = new Schema({
   onboard_fav_keywords: {
     type: Boolean,
     default: false
+  },
+  onboard_tweet_action: {
+    type: Boolean,
+    default: true
   }
 });
 
