@@ -218,10 +218,19 @@ function getFavDataForKey(req, res, key) {
 
 function saveFavDataForKey(req, res, key) {
   if (req.isAuthenticated()) {
-    var favData = JSON.parse(req.body[key]),
+    var params = req.body[key],
       user = req.user,
       minKey = 'MINIMUM_' + key.toUpperCase() + '_' + user.user_type,
-      maxKey = 'MAXIMUM_' + key.toUpperCase() + '_' + user.user_type;
+      maxKey = 'MAXIMUM_' + key.toUpperCase() + '_' + user.user_type,
+      favData;
+
+    if (!params) {
+      return res.status(401).json({
+        message: 'Please provide ' + Constants[minKey] + ' unique values'
+      });
+    }
+
+    favData = JSON.parse(req.body[key]);
 
     //Make all username lowercase
     favItems = favData.map(function(item) {
@@ -264,6 +273,10 @@ function saveFavDataForKey(req, res, key) {
           });
 
           user.last_access_date = Date.now();
+
+          //Save onbaording status
+          user['onboard_' + key] = true;
+
           user.save(function(err, user) {
             if (err) {
               res.status(500).json({

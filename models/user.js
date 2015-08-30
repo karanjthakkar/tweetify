@@ -88,6 +88,14 @@ var UserSchema = new Schema({
   activity: {
     type: String,
     default: 'ON'
+  },
+  onboard_fav_users: {
+    type: Boolean,
+    default: false
+  },
+  onboard_fav_keywords: {
+    type: Boolean,
+    default: false
   }
 });
 
