@@ -174,6 +174,7 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
 
   //Increment Tweet analysed count in DB
   user.total_tweets_analysed += tweets.length;
+  user.total_tweets_scheduled += user.top_tweets.length;
 
   user.save(function(err) {
     if (err) {

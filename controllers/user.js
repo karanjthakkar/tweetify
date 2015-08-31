@@ -71,6 +71,7 @@ exports.getUserData = function(req, res) {
           profile_banner_url: user.profile_banner_url,
           last_cron_run_time: user.last_cron_run_time,
           total_tweets_posted: user.total_tweets_posted,
+          total_tweets_scheduled: user.total_tweets_scheduled,
           total_tweets_analysed: user.total_tweets_analysed,
           tweet_action: user.tweet_action,
           fav_keywords: user.fav_keywords,

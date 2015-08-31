@@ -1,6 +1,8 @@
 var fs = require('fs'),
   path = require('path'),
+  cookieParser = require('cookie-parser'),
   express = require('express'),
+  bodyParser = require('body-parser'),
   passport = require('passport'),
   TwitterStrategy = require('passport-twitter').Strategy,
   session = require('express-session'),
@@ -92,10 +94,8 @@ var allowCrossDomain = function(req, res, next) {
 
 // configure Express
 app.configure(function() {
-  app.use(express.logger());
-  app.use(express.cookieParser());
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
+  app.use(cookieParser());
+  app.use(bodyParser.json())
   app.use(express.session({
     secret: 'tweetify-geekykaran-a2da059017ef619e25f6347bf04a3b41',
     maxAge: new Date(Date.now() + 3600000),

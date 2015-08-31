@@ -34,7 +34,9 @@ module.exports = function(app, passport) {
 
   app.post('/logout', function(req, res) {
     req.logout();
-    res.status(200);
+    res.status(200).json({
+      success: true
+    });
   });
 
   /**
@@ -56,8 +58,8 @@ module.exports = function(app, passport) {
   app.post('/fav_users', OptionController.saveFavoriteUsers);
 
   //Get and Save/Update Tweet Options
-  app.get('/tweet_options', OptionController.getTweetOptions);
-  app.post('/tweet_options', OptionController.saveTweetOptions);
+  app.get('/tweet_action', OptionController.getTweetAction);
+  app.post('/tweet_action', OptionController.saveTweetAction);
 
   //Get and Save/Update Favorite Keywords
   app.get('/fav_keywords', OptionController.getKeywords);

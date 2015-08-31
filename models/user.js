@@ -81,6 +81,10 @@ var UserSchema = new Schema({
     type: Number,
     default: 0
   },
+  total_tweets_scheduled: {
+    type: Number,
+    default: 0
+  },
   total_tweets_posted: {
     type: Number,
     default: 0

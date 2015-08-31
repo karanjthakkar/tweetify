@@ -22,7 +22,7 @@ exports.saveKeywords = function(req, res) {
   saveFavDataForKey(req, res, 'fav_keywords');
 };
 
-exports.getTweetOptions = function(req, res) {
+exports.getTweetAction = function(req, res) {
   if (req.isAuthenticated()) {
     User.findOne({
       id: req.user.id
@@ -47,7 +47,7 @@ exports.getTweetOptions = function(req, res) {
   }
 };
 
-exports.saveTweetOptions = function(req, res) {
+exports.saveTweetAction = function(req, res) {
   if (req.isAuthenticated()) {
 
     var option = req.body['tweet_action'];
@@ -252,7 +252,7 @@ function saveFavDataForKey(req, res, key) {
 
     uniqueFavData = _.uniq(favData);
 
-    if (uniqueFavData.length !== favData.length) {
+    if (uniqueFavData.length < favData.length && uniqueFavData.length < Constants[minKey]) {
       return res.status(401).json({
         message: 'Please provide ' + Constants[minKey] + ' unique values'
       });
