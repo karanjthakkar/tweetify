@@ -66,8 +66,8 @@ module.exports = function(app, passport) {
   app.post('/fav_keywords', OptionController.saveKeywords);
 
   //Fetch tweets for a user
-  app.get('/posted_tweets', UserController.getPostedTweets);
-  app.get('/scheduled_tweets', UserController.getScheduledTweets);
+  app.get('/posted_tweets/:id', UserController.getPostedTweets);
+  app.get('/scheduled_tweets/:id', UserController.getScheduledTweets);
 
   //Turn posting ON and OFF
   app.get('/activity', OptionController.getAccountActivity);

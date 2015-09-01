@@ -99,9 +99,8 @@ exports.getScheduledTweets = function(req, res) {
 };
 
 function getTweets(req, res, posted) {
-  if (req.isAuthenticated()) {
-    var userId = req.user.id;
-
+  var userId = parseInt(req.params.id);
+  if (req.isAuthenticated() && req.user.id === userId) {
     //Update or add new user to collection
     User.findOne({
       id: userId
