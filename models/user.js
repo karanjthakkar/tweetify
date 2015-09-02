@@ -75,7 +75,11 @@ var UserSchema = new Schema({
     posted_tweet_id: String,
     scheduled_at: Number,
     posted_at: Number,
-    posted: Boolean
+    posted: Boolean,
+    error: {
+      type: String,
+      default: null
+    }
   }],
   total_tweets_analysed: {
     type: Number,

@@ -73,31 +73,32 @@ function postTweet(T, user, tweet) {
   return function(callback) {
     if (user.tweet_action === 'NATIVE_RT') {
       utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
+        var postedTweetId = posted_tweet ? posted_tweet.id_str : null,
+          error = err ? err.message : null;
         if (err) {
           console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
-          callback(null);
-        } else {
-          saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str, callback);
         }
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
       });
     } else {
       utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
+        var postedTweetId = posted_tweet ? posted_tweet.id_str : null,
+          error = err ? err.message : null
         if (err) {
           console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
-          callback(null);
-        } else {
-          saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, posted_tweet.id_str, callback);
         }
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
       });
     }
   };
 }
 
-function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, callback) {
+function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error, callback) {
   var tempTopTweets = _.map(user.top_tweets, function(topTweet) {
     if (original_id === topTweet.original_tweet_id) {
       topTweet.posted_tweet_id = id;
       topTweet.posted = true;
+      topTweet.error = error;
     }
     return topTweet;
   });
