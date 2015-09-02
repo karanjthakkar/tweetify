@@ -26,7 +26,6 @@ module.exports = {
   },
 
   tweetToClient: function(text, callback) {
-    console.log(config.TWITTER_CONSUMER_KEY, config.TWITTER_CONSUMER_SECRET);
     T = new Twit({
       consumer_key: config.TWITTER_CONSUMER_KEY,
       consumer_secret: config.TWITTER_CONSUMER_SECRET,
