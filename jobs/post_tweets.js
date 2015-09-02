@@ -29,7 +29,7 @@ User.find({}, function(err, users) {
     console.log(Date.now(), ': Post Tweets Cron Stopped ', err);
   } else {
 
-    console.log(Date.now() + ' - Global Post Cron Started');
+    console.log(Date.now() + ' - Global Post Cron Started. Users found: ' + users.length);
 
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {

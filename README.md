@@ -91,3 +91,26 @@
     ```
     export LC_ALL=C
     ```
+
+9. Running Mongo CLI on EC2 will give this error at times:
+
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten]
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten] ** WARNING: /sys/kernel/mm/transparent_hugepage/enabled is 'always'.
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten] **        We suggest setting it to 'never'
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten]
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten] ** WARNING: /sys/kernel/mm/transparent_hugepage/defrag is 'always'.
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten] **        We suggest setting it to 'never'
+        2015-08-27T14:01:27.449+0000 I CONTROL  [initandlisten]
+
+
+    Follow steps in link below to fix it:
+
+    ```
+    http://stackoverflow.com/a/29181918/1473556
+    ```
+
+    More info:
+
+    ```
+    http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/#transparent-huge-pages-thp-settings
+    ```
