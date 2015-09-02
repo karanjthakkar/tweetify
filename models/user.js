@@ -77,7 +77,7 @@ var UserSchema = new Schema({
     posted_at: Number,
     posted: Boolean,
     error: {
-      type: String,
+      type: Schema.Types.Mixed,
       default: null
     }
   }],
