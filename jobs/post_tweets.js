@@ -73,19 +73,25 @@ function postTweet(T, user, tweet) {
   return function(callback) {
     if (user.tweet_action === 'NATIVE_RT') {
       utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
-        var postedTweetId = posted_tweet ? posted_tweet.id_str : null,
-          error = err ? err.message : null;
+        var postedTweetId, error;
         if (err) {
           console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          error = err.message;
+        }
+        if (posted_tweet) {
+          postedTweetId = posted_tweet.id_str;
         }
         saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
       });
     } else {
       utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
-        var postedTweetId = posted_tweet ? posted_tweet.id_str : null,
-          error = err ? err.message : null
+        var postedTweetId, error;
         if (err) {
           console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          error = err.message;
+        }
+        if (posted_tweet) {
+          postedTweetId = posted_tweet.id_str;
         }
         saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
       });

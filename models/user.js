@@ -76,10 +76,7 @@ var UserSchema = new Schema({
     scheduled_at: Number,
     posted_at: Number,
     posted: Boolean,
-    error: {
-      type: Schema.Types.Mixed,
-      default: null
-    }
+    error: String
   }],
   total_tweets_analysed: {
     type: Number,
