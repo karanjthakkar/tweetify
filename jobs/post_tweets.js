@@ -105,6 +105,7 @@ function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error,
       topTweet.posted_tweet_id = id;
       topTweet.posted = true;
       topTweet.error = error;
+      topTweet.tweet_action = user.tweet_action;
     }
     return topTweet;
   });
