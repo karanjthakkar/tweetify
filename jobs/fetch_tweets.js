@@ -121,7 +121,14 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
         callback(null, result);
       } else {
         if (tweets.length > 0) {
-          saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, tweets[0]['id_str'], callback);
+          saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, tweets[0]['id_str'], function() {
+            var result = {
+              user: user,
+              favUser: favUser,
+              data: filterTweetsByKeyword(user, tweets)
+            };
+            callback(null, result);
+          });
         }
       }
     });
@@ -248,11 +255,6 @@ function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId
     if (err) {
       console.log(Date.now() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
     }
-    var result = {
-      user: user,
-      favUser: favUser,
-      data: filterTweetsByKeyword(user, tweets)
-    };
-    callback(null, result);
+    callback(null);
   });
 }
