@@ -116,17 +116,12 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
           favUser: favUser,
           data: []
         };
+        callback(null, result);
       } else {
         if (tweets.length > 0) {
-          saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, tweets[0]['id_str']);
+          saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, tweets[0]['id_str'], callback);
         }
-        result = {
-          user: user,
-          favUser: favUser,
-          data: filterTweetsByKeyword(user, tweets)
-        };
       }
-      callback(null, result);
     });
 
   };
@@ -238,7 +233,7 @@ function getTweetText(tweet, user, withCredits) {
   return utils.processTweet(text);
 }
 
-function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId) {
+function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId, callback) {
   var tempFav = _.map(user.fav_users, function(fav) {
     if (favUser.username === fav.username) {
       fav.last_read_tweet_id = sinceId;
@@ -251,5 +246,11 @@ function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId
     if (err) {
       console.log(Date.now() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
     }
+    var result = {
+      user: user,
+      favUser: favUser,
+      data: filterTweetsByKeyword(user, tweets)
+    };
+    callback(null, result);
   });
 }
