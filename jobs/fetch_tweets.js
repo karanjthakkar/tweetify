@@ -36,8 +36,10 @@ User.find({}, function(err, users) {
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
         console.log(Date.now() + ' - Application token invalid or expired ' + user.id);
+        eachUserCallback(null);
       } else if (user.activity === 'OFF') {
         console.log(Date.now() + ' - Activity turned off - ' + user.id);
+        eachUserCallback(null);
       } else {
         startCronForUser(user, eachUserCallback)
       }
