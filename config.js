@@ -6,7 +6,7 @@ var config = {
     TWITTER_CONSUMER_SECRET: process.env.tweetify_consumer_secret,
     TWITTER_ACCESS_TOKEN: process.env.tweetify_access_token,
     TWITTER_ACCESS_TOKEN_SECRET: process.env.tweetify_access_token_secret,
-    frontendUrl: 'http://local.tweetify.io'
+    frontendUrl: 'http://local.tweetify.io:4200'
   },
   staging: {
     callbackURL: '//api.tweetify.io/auth/twitter/callback',

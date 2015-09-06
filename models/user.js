@@ -49,6 +49,8 @@ var UserSchema = new Schema({
   created_at: Number,
   fav_users: [{
     username: String,
+    name: String,
+    profile_image_url: String,
     last_read_tweet_id: String,
     created_at: {
       type: Date,

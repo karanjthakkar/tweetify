@@ -231,7 +231,8 @@ function getFavDataForKey(req, res, key) {
 
 function saveFavDataForKey(req, res, key) {
   if (req.isAuthenticated()) {
-    var params = req.body[key],
+    var itemKey = (key === 'fav_users' ? 'username' : 'keyword'),
+      params = req.body[key],
       user = req.user,
       minKey = 'MINIMUM_' + key.toUpperCase() + '_' + user.user_type,
       maxKey = 'MAXIMUM_' + key.toUpperCase() + '_' + user.user_type,
@@ -245,12 +246,10 @@ function saveFavDataForKey(req, res, key) {
 
     favData = req.body[key];
 
-    //Make all username lowercase
-    favItems = favData.map(function(item) {
-      return item.toLowerCase();
+    //Make all username lowercase and keep unique
+    uniqueFavData = _.uniq(favData, function(item) {
+      return item[itemKey].toLowerCase();
     });
-
-    uniqueFavData = _.uniq(favData);
 
     if (uniqueFavData.length < favData.length && uniqueFavData.length < Constants[minKey]) {
       return res.status(401).json({
@@ -267,8 +266,7 @@ function saveFavDataForKey(req, res, key) {
             message: 'There was an error finding your records'
           });
         } else {
-          var itemKey = (key === 'fav_users' ? 'username' : 'keyword'),
-            oldList = user[key],
+          var oldList = user[key],
             newList = uniqueFavData;
 
           /*
@@ -278,10 +276,14 @@ function saveFavDataForKey(req, res, key) {
            */
           user[key] = _.map(newList, function(newUser) {
             var isAlreadyPresentInOldList = _.find(oldList, function(prevUser) {
-              return new RegExp(newUser, 'gi').test(prevUser.username)
+              return new RegExp(newUser.username, 'gi').test(prevUser.username)
             });
             var newUserObj = {};
-            newUserObj[itemKey] = newUser;
+            newUserObj[itemKey] = newUser[itemKey];
+            if (itemKey === 'username') {
+              newUserObj['name'] = newUser.name || '';
+              newUserObj['profile_image_url'] = newUser.profile_image_url || Constants.DEFAULT_PROFILE_PICTURE;
+            }
             return isAlreadyPresentInOldList || newUserObj;
           });
 
