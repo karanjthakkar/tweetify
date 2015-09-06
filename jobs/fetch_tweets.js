@@ -129,6 +129,13 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
             };
             callback(null, result);
           });
+        } else {
+          result = {
+            user: user,
+            favUser: favUser,
+            data: []
+          };
+          callback(null, result);
         }
       }
     });
