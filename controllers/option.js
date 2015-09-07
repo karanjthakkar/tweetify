@@ -276,7 +276,7 @@ function saveFavDataForKey(req, res, key) {
            */
           user[key] = _.map(newList, function(newUser) {
             var isAlreadyPresentInOldList = _.find(oldList, function(prevUser) {
-              return new RegExp(newUser.username, 'gi').test(prevUser.username)
+              return new RegExp(newUser[itemKey], 'gi').test(prevUser[itemKey])
             });
             var newUserObj = {};
             newUserObj[itemKey] = newUser[itemKey];
