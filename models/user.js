@@ -70,6 +70,8 @@ var UserSchema = new Schema({
   },
   last_cron_run_time: Number,
   top_tweets: [{
+    original_tweet_author: String,
+    original_tweet_profile_image_url: String,
     original_tweet_id: String,
     tweet_score: Number,
     tweet_type: String,

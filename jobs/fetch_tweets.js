@@ -173,6 +173,8 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
     currentTime = moment(currentTime).add(6, 'minutes'); //Add 6 minutes to each tweet
 
     return {
+      original_tweet_author: tweet.user.screen_name,
+      original_tweet_profile_image_url: tweet.user.profile_image_url,
       tweet_score: tweet.score,
       tweet_text: getTweetText(tweet, user),
       original_tweet_id: tweet.retweeted_status ? tweet.retweeted_status.id_str : tweet.id_str,
