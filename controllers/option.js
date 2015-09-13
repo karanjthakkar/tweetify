@@ -2,7 +2,12 @@ var mongoose = require('mongoose'),
   User = mongoose.model('User'),
   _ = require('lodash'),
   Twit = require('twit'),
-  Constants = require('../constants');
+  Constants = require('../constants'),
+  config = require('../config'),
+  argv = require('minimist')(process.argv.slice(2));
+
+//Setup config based on environment
+config = config[argv['environment'] || 'local'];
 
 //TODO: If old keyword has a saved date, it needs to be maintained on update IMPORTANT
 //TODO: Validate data received from frontend. Check keys
@@ -171,10 +176,10 @@ exports.checkUsername = function(req, res) {
         res.status(401).json(error);
       } else {
         T = new Twit({
-          consumer_key: user.twitter_app_consumer_key,
-          consumer_secret: user.twitter_app_consumer_secret,
-          access_token: user.twitter_app_access_token,
-          access_token_secret: user.twitter_app_access_token_secret
+          consumer_key: config.TWITTER_CONSUMER_KEY,
+          consumer_secret: config.TWITTER_CONSUMER_SECRET,
+          access_token: user.twitter_token,
+          access_token_secret: user.twitter_token_secret
         });
         T.get('users/show', {
           screen_name: req.query.username

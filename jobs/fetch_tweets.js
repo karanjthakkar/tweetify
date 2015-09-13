@@ -64,10 +64,10 @@ function startCronForUser(user, eachUserCallback) {
   //Get fav_users for each user
   var favUsers = user.fav_users,
     T = new Twit({
-      consumer_key: user.twitter_app_consumer_key,
-      consumer_secret: user.twitter_app_consumer_secret,
-      access_token: user.twitter_app_access_token,
-      access_token_secret: user.twitter_app_access_token_secret
+      consumer_key: config.TWITTER_CONSUMER_KEY,
+      consumer_secret: config.TWITTER_CONSUMER_SECRET,
+      access_token: user.twitter_token,
+      access_token_secret: user.twitter_token_secret
     }),
     fetchTweetsForEachFavUserFunctions = [];
 

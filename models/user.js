@@ -24,7 +24,7 @@ var UserSchema = new Schema({
   },
   application_token_expired: {
     type: Boolean,
-    default: true
+    default: false
   },
   twitter_token: String,
   twitter_token_secret: String,

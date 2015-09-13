@@ -1,6 +1,11 @@
 var mongoose = require('mongoose'),
   User = mongoose.model('User'),
-  Twit = require('twit');
+  Twit = require('twit'),
+  config = require('../config'),
+  argv = require('minimist')(process.argv.slice(2));
+
+//Setup config based on environment
+config = config[argv['environment'] || 'local'];
 
 //TODO: Validate data received from frontend. Check keys
 exports.getApplicationToken = function(req, res) {
@@ -100,10 +105,10 @@ function respondToUnauthenticatedRequests(res) {
 
 function verifyCredentials(tokens, callback) {
   var T = new Twit({
-    consumer_key: tokens.twitter_app_consumer_key,
-    consumer_secret: tokens.twitter_app_consumer_secret,
-    access_token: tokens.twitter_app_access_token,
-    access_token_secret: tokens.twitter_app_access_token_secret
+    consumer_key: config.TWITTER_CONSUMER_KEY,
+    consumer_secret: config.TWITTER_CONSUMER_SECRET,
+    access_token: user.twitter_token,
+    access_token_secret: user.twitter_token_secret
   });
   T.get('account/verify_credentials', function(err, user) {
     callback(err, user);
