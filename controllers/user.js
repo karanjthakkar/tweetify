@@ -69,6 +69,7 @@ exports.getUserData = function(req, res) {
           following: user.following,
           profile_image_url: user.profile_image_url,
           profile_banner_url: user.profile_banner_url,
+          created_at: user.created_at,
           last_cron_run_time: user.last_cron_run_time,
           total_tweets_posted: user.total_tweets_posted,
           total_tweets_scheduled: user.total_tweets_scheduled,
