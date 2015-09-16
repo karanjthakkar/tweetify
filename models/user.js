@@ -66,7 +66,7 @@ var UserSchema = new Schema({
   }],
   tweet_action: { //Types: COPY, NATIVE_RT, TEXT_RT, QUOTE
     type: String,
-    default: 'COPY'
+    default: 'TEXT_RT'
   },
   last_cron_run_time: Number,
   top_tweets: [{
