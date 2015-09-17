@@ -84,7 +84,7 @@ function startCronForUser(user, eachUserCallback) {
     if (tweets.length > 0) {
       findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets, eachUserCallback);
     } else {
-      console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets.');
+      console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
       eachUserCallback(null);
     }
 
