@@ -1,7 +1,84 @@
 var mongoose = require('mongoose'),
   _ = require('lodash'),
+  moment = require('moment'),
   utils = require('../utils'),
   User = mongoose.model('User');
+
+exports.approveTweet = function(req, res) {
+  if (req.isAuthenticated()) {
+
+    var tweetId = req.params.id,
+      foundTweet = false,
+      alreadyApproved = false;
+
+    User.findOne({
+      id: req.user.id
+    }, function(err, user) {
+      if (err) {
+        res.status(500).json({
+          message: 'There was an error finding your records'
+        });
+      } else if (user.application_token_expired) {
+        var error = {
+          success: false,
+          message: 'You have not entered your application access token or your token has expired.'
+        };
+        res.status(401).json(error);
+      } else {
+        var topTweets = user.top_tweets,
+          lastApprovedPostTime = user.last_approved_post_time,
+          newApprovedPostTime = Date.now();
+
+        if (lastApprovedPostTime) {
+          newApprovedPostTime = moment(lastApprovedPostTime).add(6, 'minutes').valueOf();
+        }
+
+        user.last_approved_post_time = newApprovedPostTime;
+        user.top_tweets = topTweets.map(function(item) {
+          if (item._id.equals(tweetId)) { //Reference: https://github.com/Automattic/mongoose/issues/2352#issuecomment-58334125
+            foundTweet = true;
+            if (item.approved) {
+              alreadyApproved = true;
+              newApprovedPostTime = item.scheduled_at;
+            } else {
+              item.approved = true;
+              item.scheduled_at = newApprovedPostTime;
+            }
+          }
+          return item;
+        });
+
+        if (!foundTweet) {
+          return res.status(404).json({
+            message: 'We could not find this tweet. Try again.'
+          });
+        }
+
+        if (alreadyApproved) {
+          return res.status(404).json({
+            success: true,
+            scheduled_at: newApprovedPostTime
+          });
+        }
+
+        user.save(function(err, user) {
+          if (err) {
+            res.status(500).json({
+              message: 'There was an error approving this tweet. Try again.'
+            });
+          } else {
+            res.status(200).json({
+              success: true,
+              scheduled_at: newApprovedPostTime
+            });
+          }
+        });
+      }
+    });
+  } else {
+    respondToUnauthenticatedRequests(res)
+  }
+};
 
 exports.saveOrUpdateUserData = function(userData, done) {
 

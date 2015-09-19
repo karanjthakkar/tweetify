@@ -73,4 +73,7 @@ module.exports = function(app, passport) {
   app.get('/activity', OptionController.getAccountActivity);
   app.post('/activity', OptionController.saveAccountActivity);
 
+  //Approve and schedule a tweet
+  app.post('/approve/:id', UserController.approveTweet);
+
 };
