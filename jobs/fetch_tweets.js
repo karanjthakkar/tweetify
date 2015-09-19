@@ -55,7 +55,7 @@ function startCronForUser(user, eachUserCallback) {
     newCron = Date.now(),
     isHalfHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 30;
 
-  if (!isHourComplete) {
+  if (!isHalfHourComplete) {
     return eachUserCallback(null);
   }
 
