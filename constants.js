@@ -7,8 +7,8 @@ module.exports = {
   DEFAULT_TWEET_LIMIT: 20,
 
   //Tweets limit
-  TOP_TWEETS_LIMIT_FREE: 5,
-  TOP_TWEETS_LIMIT_PAID: 10,
+  TOP_TWEETS_LIMIT_FREE: 10,
+  TOP_TWEETS_LIMIT_PAID: 20,
 
   //Minimum & Maximum fav_users limits
   MINIMUM_FAV_USERS_FREE: 2,

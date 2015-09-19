@@ -26,20 +26,20 @@ var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
   if (err) {
-    console.log(Date.now(), ': Post Tweets Cron Stopped ', err);
+    console.log(new Date() + ' - Post Tweets Cron Stopped. Error: ' + err);
   } else {
 
-    console.log(Date.now() + ' - Global Post Cron Started. Users found: ' + users.length);
+    console.log(new Date() + ' - Global Post Cron Started. Users found: ' + users.length);
 
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
-        console.log(Date.now(), ': Application token invalid or expired ', user.id);
+        console.log(new Date(), ' - Application token invalid or expired: ', user.id);
         eachUserCallback(null);
       } else {
         startCronForUser(user, eachUserCallback);
       }
     }, function() {
-      console.log(Date.now() + ' - Global Post Cron Init Complete');
+      console.log(new Date() + ' - Global Post Cron Init Complete');
       closeMongoConnection();
     });
   }
@@ -59,7 +59,7 @@ function startCronForUser(user, eachUserCallback) {
     }),
     postTweetsForEachTopTweetFunctions = [];
 
-  console.log('Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
+  console.log(new Date() + ' - Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
 
   _.each(tweetsToBePosted, function(tweet) {
     postTweetsForEachTopTweetFunctions.push(postTweet(T, user, tweet));
@@ -100,7 +100,7 @@ function postTweet(T, user, tweet) {
       utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
         var postedTweetId, error;
         if (err) {
-          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ' + err.message);
           error = err.message;
         }
         if (posted_tweet) {
@@ -136,7 +136,7 @@ function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error,
 
   user.save(function(err) {
     if (err) {
-      console.log(Date.now(), ' : Error while updating posted_tweet_id ', user.id, err);
+      console.log(new Date() + ' - Error while updating posted_tweet_id: ' + user.id + '. Error: ' + err);
     }
     callback(null);
   });

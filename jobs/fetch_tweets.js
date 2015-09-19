@@ -28,23 +28,23 @@ var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
   if (err) {
-    console.log(Date.now() + ' - Fetch Tweets Cron Stopped - ' + err);
+    console.log(new Date() + ' - Fetch Tweets Cron Stopped - ' + err);
   } else {
 
-    console.log(Date.now() + ' - Global Fetch Cron Started. Users found: ' + users.length);
+    console.log(new Date() + ' - Global Fetch Cron Started. Users found: ' + users.length);
 
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
-        console.log(Date.now() + ' - Application token invalid or expired ' + user.id);
+        console.log(new Date() + ' - Application token invalid or expired ' + user.id);
         eachUserCallback(null);
       } else if (user.activity === 'OFF') {
-        console.log(Date.now() + ' - Activity turned off - ' + user.id);
+        console.log(new Date() + ' - Activity turned off - ' + user.id);
         eachUserCallback(null);
       } else {
         startCronForUser(user, eachUserCallback)
       }
     }, function() {
-      console.log(Date.now() + ' - Global Fetch Cron Init Complete');
+      console.log(new Date() + ' - Global Fetch Cron Init Complete');
       closeMongoConnection();
     });
   }
@@ -59,7 +59,7 @@ function startCronForUser(user, eachUserCallback) {
     return eachUserCallback(null);
   }
 
-  console.log('Fetch Tweets Cron started for user id - ' + user.id);
+  console.log(new Date() + ' - Fetch Tweets Cron started for user id - ' + user.id);
 
   //Get fav_users for each user
   var favUsers = user.fav_users,
@@ -84,7 +84,7 @@ function startCronForUser(user, eachUserCallback) {
     if (tweets.length > 0) {
       findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets, eachUserCallback);
     } else {
-      console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
+      console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
       eachUserCallback(null);
     }
 
@@ -112,7 +112,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
     T.get('statuses/user_timeline', options, function(err, tweets) {
       var result = {}
       if (err) {
-        console.log(Date.now() + ' - error fetching status for ' + favUser.username + ' - ' + err.message);
+        console.log(new Date() + ' - error fetching status for ' + favUser.username + ' - ' + err.message);
         result = {
           user: user,
           favUser: favUser,
@@ -217,9 +217,9 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
 
   user.save(function(err) {
     if (err) {
-      console.log(Date.now() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
+      console.log(new Date() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
     }
-    console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length);
+    console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length + '. Top tweets: ' + topTweets.length + '. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
     eachUserCallback(null);
   });
 }
@@ -286,7 +286,7 @@ function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId
   user.last_cron_run_time = Date.now();
   user.save(function(err) {
     if (err) {
-      console.log(Date.now() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
+      console.log(new Date() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
     }
     callback(null);
   });
