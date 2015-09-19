@@ -53,9 +53,9 @@ User.find({}, function(err, users) {
 function startCronForUser(user, eachUserCallback) {
   var oldCron = user.last_cron_run_time,
     newCron = Date.now(),
-    isHalfHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 30;
+    isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
 
-  if (!isHalfHourComplete) {
+  if (!isHourComplete && oldCron !== null) {
     return eachUserCallback(null);
   }
 
@@ -85,7 +85,14 @@ function startCronForUser(user, eachUserCallback) {
       findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets, eachUserCallback);
     } else {
       console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
-      eachUserCallback(null);
+
+      user.last_cron_run_time = Date.now();
+      user.save(function(err) {
+        if (err) {
+          console.log(new Date() + ' - Error while saving cron status - ' + user.id + ' - ' + err);
+        }
+        eachUserCallback(null);
+      });
     }
 
   });

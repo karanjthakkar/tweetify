@@ -85,7 +85,7 @@ function postTweet(T, user, tweet) {
         saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
       });
     } else if (user.tweet_action === 'TEXT_RT') {
-      utils.tweet(T, getTweetTextWithCredits(tweet.tweet_text), function(err, posted_tweet) {
+      utils.tweet(T, getTweetTextWithCredits(tweet), function(err, posted_tweet) {
         var postedTweetId, error;
         if (err) {
           console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
@@ -112,9 +112,10 @@ function postTweet(T, user, tweet) {
   };
 }
 
-function getTweetTextWithCredits(tweet, user) {
-  var credits = 'RT @' + tweet.user.screen_name + ': ';
-  text = credits + text;
+function getTweetTextWithCredits(tweet) {
+  var credits = 'RT @' + tweet.original_tweet_author + ': ',
+    text = credits + tweet.tweet_text;
+
   return utils.processTweet(text);
 }
 
