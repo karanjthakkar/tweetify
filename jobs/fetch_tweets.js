@@ -53,7 +53,7 @@ User.find({}, function(err, users) {
 function startCronForUser(user, eachUserCallback) {
   var oldCron = user.last_cron_run_time,
     newCron = Date.now(),
-    isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
+    isHalfHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 30;
 
   if (!isHourComplete) {
     return eachUserCallback(null);
@@ -165,9 +165,35 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
   var topTweets = _.slice(sortedTweets, 0, TOP_TWEET_LIMIT);
   var currentTime = moment();
   topTweets = topTweets.map(function(tweet) {
-    var type = 'original';
+    var type = 'original',
+      tweetForEntities = tweet,
+      tweet_url_entities = [],
+      tweet_media_entities = [];
+
     if (tweet.retweeted_status) {
-      type = 'retweet'
+      type = 'retweet',
+      tweetForEntities = tweet.retweeted_status;
+    }
+
+    if (tweetForEntities.entities && tweetForEntities.entities.urls) {
+      tweet_url_entities = tweetForEntities.entities.urls.map(function(item) {
+        return {
+          url: item.url,
+          display_url: item.display_url,
+          expanded_url: item.expanded_url
+        };
+      })
+    }
+
+    if (tweetForEntities.entities && tweetForEntities.entities.media) {
+      tweet_media_entities = tweetForEntities.entities.media.map(function(item) {
+        return {
+          url: item.url,
+          media_url: item.media_url,
+          display_url: item.display_url,
+          expanded_url: item.expanded_url
+        };
+      })
     }
 
     currentTime = moment(currentTime).add(6, 'minutes'); //Add 6 minutes to each tweet
@@ -176,18 +202,18 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
       original_tweet_author: tweet.user.screen_name,
       original_tweet_profile_image_url: tweet.user.profile_image_url,
       tweet_score: tweet.score,
-      tweet_text: getTweetText(tweet, user),
+      tweet_text: getTweetText(tweet, user, false),
+      tweet_url_entities: tweet_url_entities,
+      tweet_media_entities: tweet_media_entities,
       original_tweet_id: tweet.retweeted_status ? tweet.retweeted_status.id_str : tweet.id_str,
-      tweet_type: type,
-      scheduled_at: parseInt(currentTime.format('x')),
-      posted: false
+      tweet_type: type
     };
   });
   user.top_tweets = user.top_tweets.concat(topTweets);
 
   //Increment Tweet analysed count in DB
   user.total_tweets_analysed += tweets.length;
-  user.total_tweets_scheduled = user.top_tweets.length;
+  user.total_tweets_pending_approval = user.top_tweets.length;
 
   user.save(function(err) {
     if (err) {
@@ -217,7 +243,7 @@ function filterByLengthAndSpam(tweet) {
 }
 
 function filterByLength(tweet, user) {
-  var isLessThanMax = twttr.getTweetLength(getTweetText(tweet, user)) < 140;
+  var isLessThanMax = twttr.getTweetLength(getTweetText(tweet, user, true)) < 140;
   return isLessThanMax;
 }
 
@@ -240,8 +266,6 @@ function getTweetText(tweet, user, withCredits) {
   var shouldPrependCredits = (user.tweet_action === 'TEXT_RT'),
     actualTweet = tweet.retweeted_status || tweet,
     text = actualTweet.text;
-
-  withCredits = withCredits === undefined ? true : withCredits;
 
   if (shouldPrependCredits && withCredits) {
     var credits = 'RT @' + actualTweet.user.screen_name + ': ';

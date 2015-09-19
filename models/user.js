@@ -69,6 +69,10 @@ var UserSchema = new Schema({
     default: 'TEXT_RT'
   },
   last_cron_run_time: Number,
+  last_approved_post_time: {
+    type: Number,
+    default: null
+  },
   top_tweets: [{
     original_tweet_author: String,
     original_tweet_profile_image_url: String,
@@ -79,15 +83,37 @@ var UserSchema = new Schema({
     posted_tweet_id: String,
     scheduled_at: Number,
     posted_at: Number,
-    posted: Boolean,
     error: String,
-    tweet_action: String
+    tweet_action: String,
+    tweet_url_entities: [{
+      url: String,
+      display_url: String,
+      expanded_url: String
+    }],
+    tweet_media_entities: [{
+      url: String,
+      media_url: String,
+      display_url: String,
+      expanded_url: String
+    }],
+    approved: {
+      type: Boolean,
+      default: false
+    },
+    posted: {
+      type: Boolean,
+      default: false
+    }
   }],
   total_tweets_analysed: {
     type: Number,
     default: 0
   },
-  total_tweets_scheduled: {
+  total_tweets_pending_approval: {
+    type: Number,
+    default: 0
+  },
+  total_tweets_approved: {
     type: Number,
     default: 0
   },

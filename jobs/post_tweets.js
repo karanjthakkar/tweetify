@@ -49,7 +49,7 @@ function startCronForUser(user, eachUserCallback) {
   //Get top_tweets for each user
   var now = Date.now(),
     tweetsToBePosted = _.filter(user.top_tweets, function(tweet) {
-      return (tweet.posted === false) && (tweet.scheduled_at <= now);
+      return (tweet.posted === false) && (tweet.approved === true) && (tweet.scheduled_at <= now);
     }),
     T = new Twit({
       consumer_key: config.TWITTER_CONSUMER_KEY,
@@ -76,7 +76,19 @@ function postTweet(T, user, tweet) {
       utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
         var postedTweetId, error;
         if (err) {
-          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          error = err.message;
+        }
+        if (posted_tweet) {
+          postedTweetId = posted_tweet.id_str;
+        }
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
+      });
+    } else if (user.tweet_action === 'TEXT_RT') {
+      utils.tweet(T, getTweetTextWithCredits(tweet.tweet_text), function(err, posted_tweet) {
+        var postedTweetId, error;
+        if (err) {
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
           error = err.message;
         }
         if (posted_tweet) {
@@ -98,6 +110,12 @@ function postTweet(T, user, tweet) {
       });
     }
   };
+}
+
+function getTweetTextWithCredits(tweet, user) {
+  var credits = 'RT @' + tweet.user.screen_name + ': ';
+  text = credits + text;
+  return utils.processTweet(text);
 }
 
 function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error, callback) {
