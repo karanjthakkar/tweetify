@@ -74,6 +74,8 @@ var UserSchema = new Schema({
     default: null
   },
   top_tweets: [{
+    tweet_author: String,
+    tweet_profile_image_url: String,
     original_tweet_author: String,
     original_tweet_profile_image_url: String,
     original_tweet_id: String,

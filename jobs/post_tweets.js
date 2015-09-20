@@ -113,7 +113,7 @@ function postTweet(T, user, tweet) {
 }
 
 function getTweetTextWithCredits(tweet) {
-  var credits = 'RT @' + tweet.original_tweet_author + ': ',
+  var credits = 'RT @' + tweet.tweet_author + ': ',
     text = credits + tweet.tweet_text;
 
   return utils.processTweet(text);

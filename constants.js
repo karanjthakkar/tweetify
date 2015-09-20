@@ -4,7 +4,14 @@ module.exports = {
   DEFAULT_PROFILE_PICTURE: '//abs.twimg.com/sticky/default_profile_images/default_profile_4_400x400.png',
 
   //Default tweet fetch count
-  DEFAULT_TWEET_LIMIT: 20,
+  DEFAULT_TWEET_LIMIT: 50,
+
+  FAVORITES_WEIGHTAGE: 1,
+  RETWEETS_WEIGHTAGE: 2,
+  MENTIONS_WEIGHTAGE: 1,
+  URLS_WEIGHTAGE: 1,
+  MEDIA_WEIGHTAGE: 2,
+  HASHTAGS_WEIGHTAGE: 1,
 
   //Tweets limit
   TOP_TWEETS_LIMIT_FREE: 10,

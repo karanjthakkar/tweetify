@@ -178,10 +178,7 @@ exports.getTweets = function(req, res) {
 };
 
 function getTweets(req, res) {
-  var userId = parseInt(req.params.id),
-    posted = req.query.posted === '1' || false,
-    approved = req.query.approved === '1' || false,
-    unapproved = req.query.unapproved === '1' || false;
+  var userId = parseInt(req.params.id);
 
   if (req.isAuthenticated() && req.user.id === userId) {
     //Update or add new user to collection
@@ -193,20 +190,7 @@ function getTweets(req, res) {
           message: 'There was an error finding your records'
         });
       } else {
-        var data = _.filter(user.top_tweets, function(item) {
-          if (approved && !unapproved) {
-            return item.approved === true;
-          } else if (posted && unapproved && !approved) {
-            return item.posted === true || item.approved === false;
-          } else if (posted && !unapproved && !approved) {
-            return item.posted === true;
-          } else if (!posted && unapproved && !approved) {
-            return item.approved === false;
-          } else {
-            return item;
-          }
-        });
-        return res.status(200).json(data);
+        return res.status(200).json(user.top_tweets);
       }
     });
   } else {

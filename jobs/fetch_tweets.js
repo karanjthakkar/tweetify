@@ -164,7 +164,7 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
 
   var filteredTweets = _.filter(tweets, filterByLengthAndSpam.bind({user: user})),
     sortedTweets = _.sortByOrder(filteredTweets, [
-      sortyByEngagement
+      sortByTweetAttributes
     ], ['desc', 'desc']),
     TOP_TWEET_LIMIT = Constants['TOP_TWEETS_LIMIT_' + user.user_type];
 
@@ -206,8 +206,10 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
     currentTime = moment(currentTime).add(6, 'minutes'); //Add 6 minutes to each tweet
 
     return {
-      original_tweet_author: tweet.user.screen_name,
-      original_tweet_profile_image_url: tweet.user.profile_image_url,
+      tweet_author: tweet.user.screen_name,
+      tweet_profile_image_url: tweet.user.profile_image_url,
+      original_tweet_author: tweet.retweeted_status ? tweet.retweeted_status.user.screen_name : tweet.user.screen_name,
+      original_tweet_profile_image_url: tweet.retweeted_status ? tweet.retweeted_status.user.profile_image_url : tweet.user.profile_image_url,
       tweet_score: tweet.score,
       tweet_text: getTweetText(tweet, user, false),
       tweet_url_entities: tweet_url_entities,
@@ -231,14 +233,30 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
   });
 }
 
-function sortyByEngagement(tweet) {
+function sortByTweetAttributes(tweet) {
   var score = 0;
   //If status is RT'd, check original status count
   if (tweet.retweeted_status) {
     //Add score using RT and fav
-    score = tweet.retweeted_status.retweet_count + tweet.retweeted_status.favorite_count;
+    score = tweet.retweeted_status.retweet_count * Constants.RETWEETS_WEIGHTAGE + tweet.retweeted_status.favorite_count * Constants.FAVORITES_WEIGHTAGE;
   } else {
-    score = tweet.retweet_count + tweet.favorite_count;
+    score = tweet.retweet_count * Constants.RETWEETS_WEIGHTAGE + tweet.favorite_count * Constants.FAVORITES_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.urls) {
+    score += tweet.entities.urls.length * Constants.URLS_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.user_mentions) {
+    score += tweet.entities.user_mentions.length * Constants.MENTIONS_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.media) {
+    score += tweet.entities.media.length * Constants.MEDIA_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.hashtags) {
+    score += tweet.entities.hashtags.length * Constants.HASHTAGS_WEIGHTAGE;
   }
 
   tweet['score'] = score;
