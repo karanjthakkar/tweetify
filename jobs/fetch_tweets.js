@@ -28,23 +28,23 @@ var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
   if (err) {
-    console.log(Date.now() + ' - Fetch Tweets Cron Stopped - ' + err);
+    console.log(new Date() + ' - Fetch Tweets Cron Stopped - ' + err);
   } else {
 
-    console.log(Date.now() + ' - Global Fetch Cron Started. Users found: ' + users.length);
+    console.log(new Date() + ' - Global Fetch Cron Started. Users found: ' + users.length);
 
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
-        console.log(Date.now() + ' - Application token invalid or expired ' + user.id);
+        console.log(new Date() + ' - Application token invalid or expired ' + user.id);
         eachUserCallback(null);
       } else if (user.activity === 'OFF') {
-        console.log(Date.now() + ' - Activity turned off - ' + user.id);
+        console.log(new Date() + ' - Activity turned off - ' + user.id);
         eachUserCallback(null);
       } else {
         startCronForUser(user, eachUserCallback)
       }
     }, function() {
-      console.log(Date.now() + ' - Global Fetch Cron Init Complete');
+      console.log(new Date() + ' - Global Fetch Cron Init Complete');
       closeMongoConnection();
     });
   }
@@ -55,11 +55,11 @@ function startCronForUser(user, eachUserCallback) {
     newCron = Date.now(),
     isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
 
-  if (!isHourComplete) {
+  if (!isHourComplete && oldCron !== null) {
     return eachUserCallback(null);
   }
 
-  console.log('Fetch Tweets Cron started for user id - ' + user.id);
+  console.log(new Date() + ' - Fetch Tweets Cron started for user id - ' + user.id);
 
   //Get fav_users for each user
   var favUsers = user.fav_users,
@@ -84,8 +84,15 @@ function startCronForUser(user, eachUserCallback) {
     if (tweets.length > 0) {
       findAndSaveTopTweetsForUser(tweetsForAllFavUsersOfOneUser[0].user, tweets, eachUserCallback);
     } else {
-      console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
-      eachUserCallback(null);
+      console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. No new tweets. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
+
+      user.last_cron_run_time = Date.now();
+      user.save(function(err) {
+        if (err) {
+          console.log(new Date() + ' - Error while saving cron status - ' + user.id + ' - ' + err);
+        }
+        eachUserCallback(null);
+      });
     }
 
   });
@@ -112,7 +119,7 @@ function fetchTweetsForEachFavUser(T, user, favUser) {
     T.get('statuses/user_timeline', options, function(err, tweets) {
       var result = {}
       if (err) {
-        console.log(Date.now() + ' - error fetching status for ' + favUser.username + ' - ' + err.message);
+        console.log(new Date() + ' - error fetching status for ' + favUser.username + ' - ' + err.message);
         result = {
           user: user,
           favUser: favUser,
@@ -157,7 +164,7 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
 
   var filteredTweets = _.filter(tweets, filterByLengthAndSpam.bind({user: user})),
     sortedTweets = _.sortByOrder(filteredTweets, [
-      sortyByEngagement
+      sortByTweetAttributes
     ], ['desc', 'desc']),
     TOP_TWEET_LIMIT = Constants['TOP_TWEETS_LIMIT_' + user.user_type];
 
@@ -165,47 +172,96 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
   var topTweets = _.slice(sortedTweets, 0, TOP_TWEET_LIMIT);
   var currentTime = moment();
   topTweets = topTweets.map(function(tweet) {
-    var type = 'original';
+    var type = 'original',
+      tweetForEntities = tweet,
+      tweet_url_entities = [],
+      tweet_media_entities = [];
+
     if (tweet.retweeted_status) {
-      type = 'retweet'
+      type = 'retweet',
+      tweetForEntities = tweet.retweeted_status;
+    }
+
+    if (tweetForEntities.entities && tweetForEntities.entities.urls) {
+      tweet_url_entities = tweetForEntities.entities.urls.map(function(item) {
+        return {
+          url: item.url,
+          display_url: item.display_url,
+          expanded_url: item.expanded_url
+        };
+      })
+    }
+
+    if (tweetForEntities.entities && tweetForEntities.entities.media) {
+      tweet_media_entities = tweetForEntities.entities.media.map(function(item) {
+        return {
+          url: item.url,
+          media_url: item.media_url,
+          display_url: item.display_url,
+          expanded_url: item.expanded_url
+        };
+      })
     }
 
     currentTime = moment(currentTime).add(6, 'minutes'); //Add 6 minutes to each tweet
 
     return {
-      original_tweet_author: tweet.user.screen_name,
-      original_tweet_profile_image_url: tweet.user.profile_image_url,
+      tweet_author: tweet.user.screen_name,
+      tweet_profile_image_url: tweet.user.profile_image_url,
+      original_tweet_author: tweet.retweeted_status ? tweet.retweeted_status.user.screen_name : tweet.user.screen_name,
+      original_tweet_profile_image_url: tweet.retweeted_status ? tweet.retweeted_status.user.profile_image_url : tweet.user.profile_image_url,
       tweet_score: tweet.score,
-      tweet_text: getTweetText(tweet, user),
+      tweet_text: getTweetText(tweet, user, false),
+      tweet_url_entities: tweet_url_entities,
+      tweet_media_entities: tweet_media_entities,
       original_tweet_id: tweet.retweeted_status ? tweet.retweeted_status.id_str : tweet.id_str,
-      tweet_type: type,
-      scheduled_at: parseInt(currentTime.format('x')),
-      posted: false
+      tweet_type: type
     };
   });
   user.top_tweets = user.top_tweets.concat(topTweets);
 
   //Increment Tweet analysed count in DB
   user.total_tweets_analysed += tweets.length;
-  user.total_tweets_scheduled = user.top_tweets.length;
+  user.total_tweets_pending_approval = user.top_tweets.length;
 
   user.save(function(err) {
     if (err) {
-      console.log(Date.now() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
+      console.log(new Date() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
     }
-    console.log('Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length);
+
+    /* Send a tweet to the user */
+    var text = '@' + user.username + ' We found ' + topTweets.length + ' tweet' + (topTweets.length > 1 ? 's' : '') + ' that you would find interesting. Check them out: http://bit.ly/tweetify-new';
+    utils.tweetToClient(text, _.noop);
+
+    console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length + '. Top tweets: ' + topTweets.length + '. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
     eachUserCallback(null);
   });
 }
 
-function sortyByEngagement(tweet) {
+function sortByTweetAttributes(tweet) {
   var score = 0;
   //If status is RT'd, check original status count
   if (tweet.retweeted_status) {
     //Add score using RT and fav
-    score = tweet.retweeted_status.retweet_count + tweet.retweeted_status.favorite_count;
+    score = tweet.retweeted_status.retweet_count * Constants.RETWEETS_WEIGHTAGE + tweet.retweeted_status.favorite_count * Constants.FAVORITES_WEIGHTAGE;
   } else {
-    score = tweet.retweet_count + tweet.favorite_count;
+    score = tweet.retweet_count * Constants.RETWEETS_WEIGHTAGE + tweet.favorite_count * Constants.FAVORITES_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.urls) {
+    score += tweet.entities.urls.length * Constants.URLS_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.user_mentions) {
+    score += tweet.entities.user_mentions.length * Constants.MENTIONS_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.media) {
+    score += tweet.entities.media.length * Constants.MEDIA_WEIGHTAGE;
+  }
+
+  if (tweet.entities && tweet.entities.hashtags) {
+    score += tweet.entities.hashtags.length * Constants.HASHTAGS_WEIGHTAGE;
   }
 
   tweet['score'] = score;
@@ -217,7 +273,7 @@ function filterByLengthAndSpam(tweet) {
 }
 
 function filterByLength(tweet, user) {
-  var isLessThanMax = twttr.getTweetLength(getTweetText(tweet, user)) < 140;
+  var isLessThanMax = twttr.getTweetLength(getTweetText(tweet, user, true)) < 140;
   return isLessThanMax;
 }
 
@@ -241,8 +297,6 @@ function getTweetText(tweet, user, withCredits) {
     actualTweet = tweet.retweeted_status || tweet,
     text = actualTweet.text;
 
-  withCredits = withCredits === undefined ? true : withCredits;
-
   if (shouldPrependCredits && withCredits) {
     var credits = 'RT @' + actualTweet.user.screen_name + ': ';
     text = credits + text;
@@ -262,7 +316,7 @@ function saveSinceIdForEachFavUserAndUpdateLastJobRuntime(user, favUser, sinceId
   user.last_cron_run_time = Date.now();
   user.save(function(err) {
     if (err) {
-      console.log(Date.now() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
+      console.log(new Date() + ' - Error while saving last_read_tweet_id - ' + user.id + ' - ' + err);
     }
     callback(null);
   });

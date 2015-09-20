@@ -26,20 +26,20 @@ var User = mongoose.model('User');
 
 User.find({}, function(err, users) {
   if (err) {
-    console.log(Date.now(), ': Post Tweets Cron Stopped ', err);
+    console.log(new Date() + ' - Post Tweets Cron Stopped. Error: ' + err);
   } else {
 
-    console.log(Date.now() + ' - Global Post Cron Started. Users found: ' + users.length);
+    console.log(new Date() + ' - Global Post Cron Started. Users found: ' + users.length);
 
     async.each(users, function(user, eachUserCallback) {
       if (user.application_token_expired) {
-        console.log(Date.now(), ': Application token invalid or expired ', user.id);
+        console.log(new Date(), ' - Application token invalid or expired: ', user.id);
         eachUserCallback(null);
       } else {
         startCronForUser(user, eachUserCallback);
       }
     }, function() {
-      console.log(Date.now() + ' - Global Post Cron Init Complete');
+      console.log(new Date() + ' - Global Post Cron Init Complete');
       closeMongoConnection();
     });
   }
@@ -49,7 +49,7 @@ function startCronForUser(user, eachUserCallback) {
   //Get top_tweets for each user
   var now = Date.now(),
     tweetsToBePosted = _.filter(user.top_tweets, function(tweet) {
-      return (tweet.posted === false) && (tweet.scheduled_at <= now);
+      return (tweet.posted === false) && (tweet.approved === true) && (tweet.scheduled_at <= now);
     }),
     T = new Twit({
       consumer_key: config.TWITTER_CONSUMER_KEY,
@@ -59,7 +59,7 @@ function startCronForUser(user, eachUserCallback) {
     }),
     postTweetsForEachTopTweetFunctions = [];
 
-  console.log('Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
+  console.log(new Date() + ' - Post Tweets Cron started for user id: ' + user.id + '. New tweets: ' + tweetsToBePosted.length);
 
   _.each(tweetsToBePosted, function(tweet) {
     postTweetsForEachTopTweetFunctions.push(postTweet(T, user, tweet));
@@ -76,7 +76,19 @@ function postTweet(T, user, tweet) {
       utils.retweet(T, tweet.original_tweet_id, function(err, posted_tweet) {
         var postedTweetId, error;
         if (err) {
-          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          error = err.message;
+        }
+        if (posted_tweet) {
+          postedTweetId = posted_tweet.id_str;
+        }
+        saveTweetIdAndPostedTimeToUserObject(user, Date.now(), tweet.original_tweet_id, postedTweetId, error, callback);
+      });
+    } else if (user.tweet_action === 'TEXT_RT') {
+      utils.tweet(T, getTweetTextWithCredits(tweet), function(err, posted_tweet) {
+        var postedTweetId, error;
+        if (err) {
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
           error = err.message;
         }
         if (posted_tweet) {
@@ -88,7 +100,7 @@ function postTweet(T, user, tweet) {
       utils.tweet(T, tweet.tweet_text, function(err, posted_tweet) {
         var postedTweetId, error;
         if (err) {
-          console.log('Error posting tweet for ' + user.id + '. Twitter says: ', err.message);
+          console.log(new Date() + ' - Error posting tweet for ' + user.id + '. Twitter says: ' + err.message);
           error = err.message;
         }
         if (posted_tweet) {
@@ -98,6 +110,13 @@ function postTweet(T, user, tweet) {
       });
     }
   };
+}
+
+function getTweetTextWithCredits(tweet) {
+  var credits = 'RT @' + tweet.tweet_author + ': ',
+    text = credits + tweet.tweet_text;
+
+  return utils.processTweet(text);
 }
 
 function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error, callback) {
@@ -118,7 +137,7 @@ function saveTweetIdAndPostedTimeToUserObject(user, now, original_id, id, error,
 
   user.save(function(err) {
     if (err) {
-      console.log(Date.now(), ' : Error while updating posted_tweet_id ', user.id, err);
+      console.log(new Date() + ' - Error while updating posted_tweet_id: ' + user.id + '. Error: ' + err);
     }
     callback(null);
   });
