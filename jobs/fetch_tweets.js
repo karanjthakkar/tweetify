@@ -55,7 +55,7 @@ function startCronForUser(user, eachUserCallback) {
     newCron = Date.now(),
     isHourComplete = moment.duration(moment(newCron).diff(moment(oldCron))).asMinutes() > 60;
 
-  if (!isHourComplete && oldCron !== null) {
+  if (!isHourComplete) {
     return eachUserCallback(null);
   }
 

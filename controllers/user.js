@@ -98,12 +98,11 @@ exports.saveOrUpdateUserData = function(userData, done) {
       if (!user) { //Check if user is present in db. If not, create a new user
         var now = Date.now();
         userData = _.extend(userData, {
-          last_cron_run_time: null,
+          last_cron_run_time: moment(now).subtract(45, 'minutes').valueOf(),
           created_at: now,
           last_access_date: now
         });
         user = new User(userData);
-        utils.sendWelcomeTweet(user);
       } else { //Else update existing user
         _.forOwn(userData, function(value, key) {
           user[key] = userData[key];
