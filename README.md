@@ -114,3 +114,15 @@
     ```
     http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/#transparent-huge-pages-thp-settings
     ```
+
+10. nginx conf `/etc/nginx/nginx.conf`
+
+        http {
+            server {
+                listen 80;
+                server_name api.tweetify.io;
+                location / {
+                    proxy_pass http://127.0.0.1:3000;
+                }
+            }
+        }
