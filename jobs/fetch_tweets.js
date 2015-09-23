@@ -229,9 +229,11 @@ function findAndSaveTopTweetsForUser(user, tweets, eachUserCallback) {
       console.log(new Date() + ' - Error while saving top_tweets - ' + user.id + ' - ' + err);
     }
 
-    /* Send a tweet to the user */
-    var text = '@' + user.username + ' We found ' + topTweets.length + ' tweet' + (topTweets.length > 1 ? 's' : '') + ' that you would find interesting. Check them out: http://bit.ly/tweetify-new';
-    utils.tweetToClient(text, _.noop);
+    if (topTweets.length > 0) {
+      /* Send a tweet to the user */
+      var text = '@' + user.username + ' We found ' + topTweets.length + ' tweet' + (topTweets.length > 1 ? 's' : '') + ' that you would find interesting. Check them out: http://bit.ly/tweetify-new';
+      utils.tweetToClient(text, _.noop);
+    }
 
     console.log(new Date() + ' - Fetch Tweets Cron complete for user id - ' + user.id + '. New tweets: ' + tweets.length + '. Top tweets: ' + topTweets.length + '. Fav users: ' + user.fav_users.length + '. Fav Keywords: ' + user.fav_keywords.length);
     eachUserCallback(null);
